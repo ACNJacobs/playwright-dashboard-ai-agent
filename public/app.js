@@ -72,10 +72,10 @@ async function loadTests() {
                     <span><i class="fa-regular fa-file-code"></i> ${test.file}</span>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-success btn-sm" onclick="runTest('${test.file}', false)"><i class="fa-solid fa-play"></i> Uitvoeren</button>
-                    <button class="btn btn-primary btn-sm" onclick="runTest('${test.file}', true)"><i class="fa-solid fa-eye"></i> Met Browser</button>
-                    <button class="btn btn-warning btn-sm" onclick="editTest('${test.name}')"><i class="fa-solid fa-pen"></i> Bewerken</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteTest('${test.name}')"><i class="fa-solid fa-trash"></i> Verwijderen</button>
+                    <button class="btn btn-success btn-sm" title="Uitvoeren" onclick="runTest('${test.file}', false)"><i class="fa-solid fa-play"></i></button>
+                    <button class="btn btn-primary btn-sm" title="Met Browser" onclick="runTest('${test.file}', true)"><i class="fa-solid fa-eye"></i></button>
+                    <button class="btn btn-warning btn-sm" title="Bewerken" onclick="editTest('${test.name}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-danger btn-sm" title="Verwijderen" onclick="deleteTest('${test.name}')"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
         `).join('');
@@ -246,7 +246,8 @@ async function editTest(testName) {
         
         // Verander knoptekst
         const createBtn = document.getElementById('create-test-btn');
-        createBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Opslaan';
+        createBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i>';
+        createBtn.title = 'Opslaan';
         createBtn.onclick = () => updateTest(testName);
         
         switchTab('create');
@@ -284,7 +285,8 @@ async function updateTest(originalTestName) {
             document.getElementById('test-code').value = '';
             
             const createBtn = document.getElementById('create-test-btn');
-            createBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Test Aanmaken';
+            createBtn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+            createBtn.title = 'Test Aanmaken';
             createBtn.onclick = createTest;
             
             switchTab('tests');
@@ -603,9 +605,9 @@ async function loadScheduledTestsUI() {
                         <span><i class="fa-regular fa-calendar"></i> ${lastRun}</span>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-success btn-sm" onclick="runScheduledTestNow('${test.id}')"><i class="fa-solid fa-play"></i> Nu Draaien</button>
-                        <button class="btn btn-secondary btn-sm" onclick="toggleScheduledTest('${test.id}', ${!test.enabled})">${test.enabled ? '<i class="fa-solid fa-pause"></i> Pauzeren' : '<i class="fa-solid fa-play"></i> Hervatten'}</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteScheduledTest('${test.id}')"><i class="fa-solid fa-trash"></i> Verwijderen</button>
+                        <button class="btn btn-success btn-sm" title="Nu Draaien" onclick="runScheduledTestNow('${test.id}')"><i class="fa-solid fa-play"></i></button>
+                        <button class="btn btn-secondary btn-sm" title="${test.enabled ? 'Pauzeren' : 'Hervatten'}" onclick="toggleScheduledTest('${test.id}', ${!test.enabled})">${test.enabled ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>'}</button>
+                        <button class="btn btn-danger btn-sm" title="Verwijderen" onclick="deleteScheduledTest('${test.id}')"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             `;
@@ -1212,8 +1214,8 @@ function addChatMessage(role, content, extraData = null) {
                 <div class="ai-fix-header"><i class="fa-solid fa-wrench"></i> AI Fix Voorgesteld</div>
                 <div class="ai-fix-explanation">${extraData.explanation || ''}</div>
                 <div class="ai-fix-actions">
-                    <button class="btn btn-success btn-sm" onclick="applyAiFix('${extraData.testFile}', \`${extraData.fixedCode.replace(/`/g, '\\`')}\`)"><i class="fa-solid fa-check"></i> Pas Fix Toe</button>
-                    <button class="btn btn-secondary btn-sm" onclick="runFixedTest('${extraData.testFile}')"><i class="fa-solid fa-play"></i> Test Uitvoeren</button>
+                    <button class="btn btn-success btn-sm" title="Pas Fix Toe" onclick="applyAiFix('${extraData.testFile}', \`${extraData.fixedCode.replace(/`/g, '\\`')}\`)"><i class="fa-solid fa-check"></i></button>
+                    <button class="btn btn-secondary btn-sm" title="Test Uitvoeren" onclick="runFixedTest('${extraData.testFile}')"><i class="fa-solid fa-play"></i></button>
                 </div>
                 ${extraData.screenshotPath ? `<div class="ai-fix-screenshot">
                     <img src="${extraData.screenshotPath}" alt="Fout screenshot" style="max-width:100%; border-radius:8px; margin-top:8px;">
@@ -1402,8 +1404,8 @@ function showTestPermissionDialog(originalMessage) {
                 <li><i class="fa-solid fa-terminal"></i> Live console output tonen</li>
             </ul>
             <div class="permission-actions" style="margin-top: 12px; display: flex; gap: 8px;">
-                <button class="btn btn-success btn-sm" onclick="approveTestGeneration('${originalMessage.replace(/'/g, "\\'")}')"><i class="fa-solid fa-check"></i> Goedkeuren & Starten</button>
-                <button class="btn btn-secondary btn-sm" onclick="rejectTestGeneration()"><i class="fa-solid fa-xmark"></i> Annuleren</button>
+                <button class="btn btn-success btn-sm" title="Goedkeuren & Starten" onclick="approveTestGeneration('${originalMessage.replace(/'/g, "\\'")}')"><i class="fa-solid fa-check"></i></button>
+                <button class="btn btn-secondary btn-sm" title="Annuleren" onclick="rejectTestGeneration()"><i class="fa-solid fa-xmark"></i></button>
             </div>
         </div>
     `;
@@ -1528,7 +1530,7 @@ async function learnSite() {
     
     const btn = document.getElementById('ai-learn-btn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Bezig...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     
     addChatMessage('bot', '🧠 Ik ga de site analyseren... Dit kan even duren.');
     
@@ -1551,7 +1553,8 @@ async function learnSite() {
         addChatMessage('bot', `❌ Fout: ${error.message}`);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-brain"></i> Analyseren';
+        btn.innerHTML = '<i class="fa-solid fa-brain"></i>';
+        btn.title = 'Analyseren';
     }
 }
 
@@ -1710,7 +1713,7 @@ async function generateTest() {
     
     const btn = document.getElementById('do-generate-test-btn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Genereren...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     
     statusDiv.className = 'status-message';
     statusDiv.textContent = '🧠 AI is bezig met genereren...';
@@ -1758,7 +1761,7 @@ async function generateTest() {
         statusDiv.textContent = '❌ Fout: ' + error.message;
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Genereren';
+        btn.innerHTML = '<i class="fa-solid fa-rocket"></i>';
     }
 }
 
@@ -2344,7 +2347,7 @@ document.getElementById('test-ai-config-btn')?.addEventListener('click', async (
     const statusDiv = document.getElementById('ai-config-status');
     
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testen...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     statusDiv.style.display = 'none';
     
     try {
@@ -2372,7 +2375,7 @@ document.getElementById('test-ai-config-btn')?.addEventListener('click', async (
         statusDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-plug"></i> Test';
+        btn.innerHTML = '<i class="fa-solid fa-plug"></i>';
     }
 });
 document.getElementById('add-site-agent-btn').addEventListener('click', () => {

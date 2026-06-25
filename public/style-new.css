@@ -420,6 +420,27 @@ main {
     flex: 1;
 }
 
+/* Icon-only buttons: compact & square */
+.btn:has(> i:only-child) {
+    justify-content: center;
+    padding: 8px 12px;
+}
+
+.btn-sm:has(> i:only-child) {
+    padding: 6px 10px;
+}
+
+.btn-row .btn:has(> i:only-child) {
+    flex: 0 0 auto;
+}
+
+.card .actions .btn:has(> i:only-child) {
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 40px;
+    height: 38px;
+}
+
 .btn-lg {
     padding: 12px 24px;
     font-size: 1rem;

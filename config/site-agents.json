@@ -1,0 +1,394 @@
+[
+  {
+    "id": "1781682671073",
+    "name": "Wikipedia",
+    "baseUrl": "https://www.wikipedia.org",
+    "description": "",
+    "credentials": null,
+    "pages": [],
+    "selectors": {
+      "navigation": ".central-featured",
+      "mainContent": "main"
+    },
+    "forms": [
+      {
+        "id": "search-form",
+        "action": "https://www.wikipedia.org/search-redirect.php",
+        "method": "get",
+        "inputs": [
+          {
+            "type": "hidden",
+            "name": "family",
+            "id": "",
+            "placeholder": "",
+            "required": false,
+            "selector": "[name=\"family\"]"
+          },
+          {
+            "type": "search",
+            "name": "search",
+            "id": "searchInput",
+            "placeholder": "",
+            "required": false,
+            "selector": "#searchInput"
+          },
+          {
+            "type": "select-one",
+            "name": "language",
+            "id": "searchLanguage",
+            "required": false,
+            "selector": "#searchLanguage"
+          },
+          {
+            "type": "hidden",
+            "name": "go",
+            "id": "",
+            "placeholder": "",
+            "required": false,
+            "selector": "[name=\"go\"]"
+          }
+        ]
+      }
+    ],
+    "navigation": [
+      {
+        "path": "/",
+        "label": "I already donated"
+      }
+    ],
+    "flows": [],
+    "meta": {
+      "title": "Wikipedia",
+      "url": "https://www.wikipedia.org/"
+    },
+    "skills": [],
+    "linkedTests": [],
+    "learnedAt": "2026-06-17T07:51:20.882Z",
+    "isLearned": true,
+    "createdAt": "2026-06-17T07:51:11.073Z",
+    "screenshot": "D:\\playwright\\config\\site-1781682680735.png",
+    "error": null
+  },
+  {
+    "id": "1781700039204",
+    "name": "commit workorder",
+    "baseUrl": "https://asbtest-apps.altrad.com/ords/test/r/altrad/commit/login?request=APEX_AUTHENTICATION=TESTAUTOMATIONAUTHENTICATION",
+    "description": "maak succesvol een workorder aan en sla dat op.",
+    "credentials": {
+      "username": "TESTAUTOMATION",
+      "password": "TJVG4CFR9FGvzJRU5YOL"
+    },
+    "pages": [],
+    "selectors": {
+      "loginForm": "#wwvFlowForm",
+      "usernameInput": "#P9999_USERNAME",
+      "passwordInput": "#P9999_PASSWORD",
+      "submitButton": "#wwvFlowForm button[type=\"submit\"]",
+      "navigation": ".t-Login-containerHeader",
+      "mainContent": "#main"
+    },
+    "forms": [
+      {
+        "id": "wwvFlowForm",
+        "action": "https://asbtest-apps.altrad.com/ords/test/wwv_flow.accept?p_context=commit/login/8157271870251",
+        "method": "post",
+        "inputs": [
+          {
+            "type": "hidden",
+            "name": "p_flow_id",
+            "id": "pFlowId",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pFlowId"
+          },
+          {
+            "type": "hidden",
+            "name": "p_flow_step_id",
+            "id": "pFlowStepId",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pFlowStepId"
+          },
+          {
+            "type": "hidden",
+            "name": "p_instance",
+            "id": "pInstance",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pInstance"
+          },
+          {
+            "type": "hidden",
+            "name": "p_page_submission_id",
+            "id": "pPageSubmissionId",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageSubmissionId"
+          },
+          {
+            "type": "hidden",
+            "name": "p_request",
+            "id": "pRequest",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pRequest"
+          },
+          {
+            "type": "hidden",
+            "name": "p_reload_on_submit",
+            "id": "pReloadOnSubmit",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pReloadOnSubmit"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pContext",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pContext"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pSalt",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pSalt"
+          },
+          {
+            "type": "text",
+            "name": "P9999_USERNAME",
+            "id": "P9999_USERNAME",
+            "placeholder": "Username",
+            "required": false,
+            "selector": "#P9999_USERNAME"
+          },
+          {
+            "type": "password",
+            "name": "P9999_PASSWORD",
+            "id": "P9999_PASSWORD",
+            "placeholder": "Password",
+            "required": false,
+            "selector": "#P9999_PASSWORD"
+          },
+          {
+            "type": "hidden",
+            "name": "P9999_REMEMBER",
+            "id": "P9999_REMEMBER_HIDDENVALUE",
+            "placeholder": "",
+            "required": false,
+            "selector": "#P9999_REMEMBER_HIDDENVALUE"
+          },
+          {
+            "type": "checkbox",
+            "name": "",
+            "id": "P9999_REMEMBER",
+            "placeholder": "",
+            "required": false,
+            "selector": "#P9999_REMEMBER"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pPageFormRegionChecksums",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageFormRegionChecksums"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pPageItemsRowVersion",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageItemsRowVersion"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pPageItemsProtected",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageItemsProtected"
+          }
+        ]
+      }
+    ],
+    "navigation": [],
+    "flows": [],
+    "meta": {
+      "title": "Commit - Log In",
+      "url": "https://asbtest-apps.altrad.com/ords/test/r/altrad/commit/login?request=APEX_AUTHENTICATION=TESTAUTOMATIONAUTHENTICATION"
+    },
+    "skills": [],
+    "linkedTests": [],
+    "learnedAt": "2026-06-17T13:11:53.188Z",
+    "isLearned": true,
+    "createdAt": "2026-06-17T12:40:39.204Z",
+    "screenshot": "D:\\playwright\\config\\site-1781701913133.png",
+    "error": null
+  },
+  {
+    "id": "1782294495516",
+    "name": "Scaff app",
+    "baseUrl": "http://localhost:8080/ords/r/apex_dev/scaff-app/home",
+    "description": "smoke test",
+    "credentials": {
+      "username": "ADMIN",
+      "password": "Welkom_APEX_2026!"
+    },
+    "pages": [],
+    "selectors": {
+      "loginForm": "#wwvFlowForm",
+      "usernameInput": "#P9999_USERNAME",
+      "passwordInput": "#P9999_PASSWORD",
+      "submitButton": "#wwvFlowForm button[type=\"submit\"]",
+      "navigation": ".t-Login-containerHeader",
+      "mainContent": "#main"
+    },
+    "forms": [
+      {
+        "id": "wwvFlowForm",
+        "action": "http://localhost:8080/ords/wwv_flow.accept?p_context=scaff-app/login/13890923002970",
+        "method": "post",
+        "inputs": [
+          {
+            "type": "hidden",
+            "name": "p_flow_id",
+            "id": "pFlowId",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pFlowId"
+          },
+          {
+            "type": "hidden",
+            "name": "p_flow_step_id",
+            "id": "pFlowStepId",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pFlowStepId"
+          },
+          {
+            "type": "hidden",
+            "name": "p_instance",
+            "id": "pInstance",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pInstance"
+          },
+          {
+            "type": "hidden",
+            "name": "p_page_submission_id",
+            "id": "pPageSubmissionId",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageSubmissionId"
+          },
+          {
+            "type": "hidden",
+            "name": "p_request",
+            "id": "pRequest",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pRequest"
+          },
+          {
+            "type": "hidden",
+            "name": "p_reload_on_submit",
+            "id": "pReloadOnSubmit",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pReloadOnSubmit"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pContext",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pContext"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pSalt",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pSalt"
+          },
+          {
+            "type": "text",
+            "name": "P9999_USERNAME",
+            "id": "P9999_USERNAME",
+            "placeholder": "Username",
+            "required": false,
+            "selector": "#P9999_USERNAME"
+          },
+          {
+            "type": "password",
+            "name": "P9999_PASSWORD",
+            "id": "P9999_PASSWORD",
+            "placeholder": "Password",
+            "required": false,
+            "selector": "#P9999_PASSWORD"
+          },
+          {
+            "type": "hidden",
+            "name": "P9999_REMEMBER",
+            "id": "P9999_REMEMBER_HIDDENVALUE",
+            "placeholder": "",
+            "required": false,
+            "selector": "#P9999_REMEMBER_HIDDENVALUE"
+          },
+          {
+            "type": "checkbox",
+            "name": "",
+            "id": "P9999_REMEMBER",
+            "placeholder": "",
+            "required": false,
+            "selector": "#P9999_REMEMBER"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pPageFormRegionChecksums",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageFormRegionChecksums"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pPageItemsRowVersion",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageItemsRowVersion"
+          },
+          {
+            "type": "hidden",
+            "name": "",
+            "id": "pPageItemsProtected",
+            "placeholder": "",
+            "required": false,
+            "selector": "#pPageItemsProtected"
+          }
+        ]
+      }
+    ],
+    "navigation": [],
+    "flows": [],
+    "meta": {
+      "title": "SCAFF APP - Log In",
+      "url": "http://localhost:8080/ords/r/apex_dev/scaff-app/login?session=13890923002970"
+    },
+    "skills": [],
+    "linkedTests": [],
+    "learnedAt": "2026-06-25T12:57:40.703Z",
+    "isLearned": true,
+    "createdAt": "2026-06-24T09:48:15.516Z",
+    "screenshot": "D:\\playwright\\config\\site-1782392260621.png",
+    "error": null
+  }
+]

@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Playwright output
+test-results/
+playwright-report/
+screenshots/
+.playwright-mcp/
+
+# Config with secrets (user can add their own)
+config/api-config.json
+config/site-*.png
+
+# Screenshots in root
+*.png
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Build output
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Office docs
+*.docx
+*.doc
+*.xlsx
+*.xls
+
+# Python cache
+__pycache__/
+*.pyc
+
+# MCP screenshots
+.playwright-mcp/

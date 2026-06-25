@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<!-- Copyright (c) 2026 Ton Jacobs. All rights reserved. -->
+<!-- This file is part of the Playwright Dashboard. -->
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright Dashboard</title>
+    <link rel="stylesheet" href="style-new.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-brand">
+                <div class="logo">🎭</div>
+                <div class="header-brand-text">
+                    <h1>Playwright Dashboard</h1>
+                    <p class="header-subtitle">Beheer je tests, bekijk resultaten en genereer rapporten</p>
+                </div>
+            </div>
+            <div class="header-meta">
+                <button id="menu-toggle-btn" class="btn btn-secondary btn-sm menu-toggle" title="Menu inklappen/uitklappen">
+                    <span class="menu-toggle-icon">☰</span>
+                </button>
+                <span class="version">v1.0.0 — Ton Jacobs</span>
+            </div>
+        </div>
+    </header>
+
+    <nav class="tabs" id="main-nav">
+        <button class="tab-btn active" data-tab="tests" data-icon="🧪" title="Tests">
+            <span class="tab-icon">🧪</span>
+            <span class="tab-label">Tests</span>
+        </button>
+        <button class="tab-btn" data-tab="videos" data-icon="🎬" title="Video's">
+            <span class="tab-icon">🎬</span>
+            <span class="tab-label">Video's</span>
+        </button>
+        <button class="tab-btn" data-tab="screenshots" data-icon="📸" title="Screenshots">
+            <span class="tab-icon">📸</span>
+            <span class="tab-label">Screenshots</span>
+        </button>
+        <button class="tab-btn" data-tab="create" data-icon="➕" title="Nieuwe Test">
+            <span class="tab-icon">➕</span>
+            <span class="tab-label">Nieuwe Test</span>
+        </button>
+        <button class="tab-btn" data-tab="codegen" data-icon="🎥" title="Codegen">
+            <span class="tab-icon">🎥</span>
+            <span class="tab-label">Codegen</span>
+        </button>
+        <button class="tab-btn" data-tab="scheduled" data-icon="⏰" title="Gepland">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label">Gepland</span>
+        </button>
+        <button class="tab-btn" data-tab="ai-agent" data-icon="🤖" title="AI Agent">
+            <span class="tab-icon">🤖</span>
+            <span class="tab-label">AI Agent</span>
+        </button>
+    </nav>
+
+    <main class="container">
+
+        <!-- Tests Tab -->
+        <section id="tests-tab" class="tab-content active">
+            <div class="actions">
+                <button id="run-all-btn" class="btn btn-primary">▶️ Alle Tests Uitvoeren</button>
+                <button id="refresh-tests-btn" class="btn btn-secondary">🔄 Verversen</button>
+                <button id="open-report-btn" class="btn btn-secondary">📊 Rapport</button>
+            </div>
+            <div id="tests-list" class="card-grid">
+                <!-- Tests worden hier geladen -->
+            </div>
+            <div id="test-output" class="output-panel hidden">
+                <h3>Test Output</h3>
+                <pre id="output-text"></pre>
+            </div>
+        </section>
+
+        <!-- Videos Tab -->
+        <section id="videos-tab" class="tab-content">
+            <div class="actions">
+                <button id="refresh-videos-btn" class="btn btn-secondary">🔄 Verversen</button>
+            </div>
+            <div id="videos-list" class="card-grid">
+                <!-- Video's worden hier geladen -->
+            </div>
+        </section>
+
+        <!-- Screenshots Tab -->
+        <section id="screenshots-tab" class="tab-content">
+            <div class="actions">
+                <button id="refresh-screenshots-btn" class="btn btn-secondary">🔄 Verversen</button>
+            </div>
+            <div id="screenshots-list" class="card-grid">
+                <!-- Screenshots worden hier geladen -->
+            </div>
+        </section>
+
+        <!-- Create Test Tab -->
+        <section id="create-tab" class="tab-content">
+            <div class="form-card">
+                <h2>➕ Nieuwe Test Maken</h2>
+                <div class="form-group">
+                    <label for="test-name">Test Naam:</label>
+                    <input type="text" id="test-name" placeholder="bijv. login-test">
+                </div>
+                <div class="form-group">
+                    <label for="test-code">Test Code:</label>
+                    <div class="snippet-toolbar">
+                        <span class="toolbar-label">🛠️ Snippets:</span>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('template')" title="Basis test template">📄 Template</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('goto')" title="Ga naar URL">🔗 Goto</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('click')" title="Klik op element">🖱️ Click</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('fill')" title="Vul tekst in">⌨️ Fill</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectText')" title="Controleer tekst">✅ Expect Text</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectVisible')" title="Controleer zichtbaar">👁️ Expect Visible</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectPrice')" title="Controleer prijs/bedrag">💰 Expect Price</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('screenshot')" title="Maak screenshot">📸 Screenshot</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('wait')" title="Wacht even">⏳ Wait</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('video')" title="Start video opname">🎥 Video</button>
+                    </div>
+                    <!-- Code Zoekbalk -->
+                    <div class="code-search-bar">
+                        <input type="text" id="code-search-input" placeholder="🔍 Zoek in code..." oninput="searchInCode()">
+                        <div class="code-search-nav">
+                            <span id="code-search-count">0/0</span>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="findPrevMatch()" title="Vorige">⬆️</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="findNextMatch()" title="Volgende">⬇️</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="clearCodeSearch()" title="Wissen">❌</button>
+                        </div>
+                    </div>
+                    <textarea id="test-code" rows="15" placeholder="const { test, expect } = require('@playwright/test');
+
+test('mijn test', async ({ page }) => {
+  await page.goto('https://example.com');
+  await expect(page).toHaveTitle('Example');
+});"></textarea>
+                </div>
+                <button id="create-test-btn" class="btn btn-primary">💾 Test Opslaan</button>
+            </div>
+        </section>
+
+        <!-- Codegen Tab -->
+        <section id="codegen-tab" class="tab-content">
+            <div class="form-card">
+                <h2>🎥 Codegen Starten</h2>
+                <p>Start Playwright codegen om handelingen op te nemen.</p>
+                <div class="form-group">
+                    <label for="codegen-url">URL:</label>
+                    <input type="text" id="codegen-url" placeholder="https://example.com" value="https://www.wikipedia.org">
+                </div>
+                <button id="start-codegen-btn" class="btn btn-primary">🚀 Start Codegen</button>
+                <div id="codegen-status" class="status-message"></div>
+            </div>
+        </section>
+
+        <!-- Scheduled Tests Tab -->
+        <section id="scheduled-tab" class="tab-content">
+            <div class="form-card">
+                <h2>⏰ Terugkerende Tests</h2>
+                <p>Plan tests om automatisch op vaste tijden te draaien.</p>
+                
+                <div class="form-group">
+                    <label for="scheduled-test-select">Test:</label>
+                    <select id="scheduled-test-select">
+                        <option value="">-- Kies een test --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="scheduled-interval">Interval (minuten):</label>
+                    <input type="number" id="scheduled-interval" value="60" min="1" max="1440">
+                    <small>Bijv. 60 = elk uur, 1440 = elke dag</small>
+                </div>
+                <button id="add-scheduled-btn" class="btn btn-primary">➕ Toevoegen</button>
+            </div>
+            
+            <h3>Geplande Tests</h3>
+            <div id="scheduled-list" class="card-grid">
+                <!-- Geplande tests worden hier geladen -->
+            </div>
+        </section>
+        
+        <!-- AI Agent Tab -->
+        <section id="ai-agent-tab" class="tab-content">
+            <div class="ai-agent-layout" id="ai-agent-layout">
+                <!-- Linker paneel: Site Agents & Config -->
+                <div class="ai-sidebar" id="ai-sidebar">
+                    <div class="ai-section">
+                        <h3 class="collapsible-header" data-target="ai-config-panel-wrapper">
+                            <span>⚙️ AI Configuratie</span>
+                            <button class="toggle-section-btn" title="Inklappen"></button>
+                        </h3>
+                        <div id="ai-config-panel-wrapper" class="collapsible-body">
+                            <div id="ai-config-panel" class="form-card compact">
+                                <div class="form-group">
+                                    <label>Provider:</label>
+                                    <select id="ai-provider">
+                                        <option value="openai">OpenAI</option>
+                                        <option value="azure">Azure OpenAI</option>
+                                        <option value="claude">Claude</option>
+                                        <option value="grok">Grok (xAI)</option>
+                                        <option value="ollama">Ollama (Lokaal)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="ai-apikey-group">
+                                    <label>API Key:</label>
+                                    <input type="password" id="ai-api-key" placeholder="sk-...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Model:</label>
+                                    <div class="model-selector">
+                                        <select id="ai-model-select">
+                                            <option value="">-- Kies een model --</option>
+                                        </select>
+                                        <button id="ai-fetch-models-btn" class="btn btn-secondary btn-sm" title="Modellen ophalen">🔄</button>
+                                    </div>
+                                    <input type="text" id="ai-model" placeholder="of typ handmatig..." style="margin-top:6px;">
+                                </div>
+                                <div class="form-group" id="ai-endpoint-group" style="display:none;">
+                                    <label>Endpoint:</label>
+                                    <input type="text" id="ai-endpoint" placeholder="https://...">
+                                </div>
+                                <div class="btn-row">
+                                    <button id="save-ai-config-btn" class="btn btn-primary btn-sm">💾 Opslaan</button>
+                                    <button id="test-ai-config-btn" class="btn btn-secondary btn-sm">🔌 Test</button>
+                                </div>
+                                <div id="ai-config-status" class="status-message"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-section">
+                        <h3 class="collapsible-header" data-target="site-agents-wrapper">
+                            <span>🏢 Site Agents</span>
+                            <button class="toggle-section-btn" title="Inklappen"></button>
+                        </h3>
+                        <div id="site-agents-wrapper" class="collapsible-body">
+                            <div id="site-agents-list" class="agent-list">
+                                <!-- Site agents worden hier geladen -->
+                            </div>
+                            <button id="add-site-agent-btn" class="btn btn-success btn-sm">➕ Nieuwe Site</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Midden paneel: Chat -->
+                <div class="ai-chat-pane" id="ai-chat-pane">
+                    <div id="ai-chat-container" class="ai-chat-container hidden">
+                        <div class="ai-chat-header">
+                            <span id="ai-chat-site-name">Site Agent</span>
+                            <div class="ai-chat-actions">
+                                <button id="ai-generate-test-btn" class="btn btn-success btn-sm">📝 Genereer Test</button>
+                            </div>
+                        </div>
+                        <div id="ai-chat-messages" class="ai-chat-messages">
+                            <!-- Chat berichten -->
+                        </div>
+                        <div class="ai-chat-input-area">
+                            <div class="ai-chat-input-row">
+                                <textarea id="ai-chat-input" rows="2" placeholder="Beschrijf wat je wilt testen... Bijv: 'Bezoek de site, log in, en controleer of het dashboard laadt'"></textarea>
+                            </div>
+                            <!-- Handmatige actie input -->
+                            <div class="manual-action-row">
+                                <input type="text" id="manual-action-input" placeholder="🖱️ Typ een handmatige actie: 'klik op Inloggen', 'vul Username in met testuser'..." />
+                                <button id="manual-action-btn" class="btn btn-primary btn-sm">▶️ Uitvoeren</button>
+                            </div>
+                            <div class="ai-chat-actions-row">
+                                <button id="ai-chat-send-btn" class="btn btn-primary">Verstuur</button>
+                                <button id="ai-new-test-btn" class="btn btn-success">➕ Nieuwe Test</button>
+                                <button id="ai-clear-chat-btn" class="btn btn-secondary">🗑️ Wis Chat</button>
+                                <button id="ai-done-btn" class="btn btn-warning">✅ Klaar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rechter paneel: Test Editor (altijd zichtbaar in AI Agent tab) -->
+                <div class="ai-editor-pane" id="ai-editor-pane">
+                    <div id="test-editor-panel" class="test-editor-panel">
+                        <div class="test-editor-header">
+                            <span class="test-editor-title">📝 Test Editor</span>
+                            <div class="test-editor-actions">
+                                <button id="test-editor-save-btn" class="btn btn-success btn-sm">💾 Opslaan</button>
+                                <button id="test-editor-run-btn" class="btn btn-primary btn-sm">▶️ Uitvoeren</button>
+                                <button id="test-editor-clear-btn" class="btn btn-secondary btn-sm">🗑️ Wis</button>
+                            </div>
+                        </div>
+                        <div class="test-editor-body">
+                            <input type="text" id="test-editor-name" class="test-editor-name-input" placeholder="Test naam..." value="">
+                            <div class="test-editor-status" id="test-editor-status">
+                                <span class="status-badge status-info" id="codegen-status-badge">📝 Klaar voor code generatie</span>
+                            </div>
+                            <textarea id="test-editor-code" class="test-editor-code" placeholder="// Start een conversatie om Playwright code te genereren
+// De agent zal hier live code verschijnen terwijl hij de site doorloopt
+// Of typ een handmatige actie om zelf code te genereren
+
+const { test, expect } = require('@playwright/test');
+
+test('voorbeeld', async ({ page }) => {
+  // ...
+});
+"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal: Help / Welkom -->
+            <div id="ai-help-modal" class="modal hidden">
+                <div class="modal-content modal-wide">
+                    <span class="modal-close">&times;</span>
+                    <h2>🤖 Welkom bij je AI Test Agent</h2>
+                    <div class="help-content">
+                        <div class="help-step">
+                            <div class="help-number">1</div>
+                            <div class="help-text">
+                                <strong>Configureer je AI API</strong>
+                                <p>Kies een AI provider (OpenAI, Azure, Claude, Grok, Ollama) en vul je API key in.</p>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-number">2</div>
+                            <div class="help-text">
+                                <strong>Registreer een nieuwe site</strong>
+                                <p>Klik op "➕ Nieuwe Site" en vul de naam en URL in.</p>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-number">3</div>
+                            <div class="help-text">
+                                <strong>Laat de agent de site analyseren</strong>
+                                <p>Klik op "🧠 Analyseren" om de agent de site te laten verkennen.</p>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-number">4</div>
+                            <div class="help-text">
+                                <strong>Chat met de agent om tests te genereren!</strong>
+                                <p>Vraag de agent om tests te maken, bijvoorbeeld: "Maak een test voor het login formulier"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal: Site Kennis -->
+            <div id="ai-knowledge-modal" class="modal hidden">
+                <div class="modal-content modal-wide">
+                    <span class="modal-close">&times;</span>
+                    <h2>🧠 Site Kennis</h2>
+                    <div id="ai-knowledge-modal-content">
+                        <!-- Kennis wordt hier getoond -->
+                    </div>
+                    <div class="knowledge-editor">
+                        <h4>➕ Handmatig Kennis Toevoegen</h4>
+                        <div class="form-group">
+                            <label>Type:</label>
+                            <select id="knowledge-type">
+                                <option value="selector">Selector</option>
+                                <option value="form">Formulier</option>
+                                <option value="navigation">Navigatie</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Naam/Key:</label>
+                            <input type="text" id="knowledge-key" placeholder="bijv. loginButton">
+                        </div>
+                        <div class="form-group">
+                            <label>Waarde/Beschrijving:</label>
+                            <input type="text" id="knowledge-value" placeholder="bijv. #login-btn of beschrijving">
+                        </div>
+                        <button id="add-knowledge-btn" class="btn btn-primary btn-sm">💾 Toevoegen</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+            
+            <!-- Modal: Nieuwe Site Agent -->
+            <div id="site-agent-modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="modal-close">&times;</span>
+                    <h2>➕ Nieuwe Site Registreren</h2>
+                    <div class="form-group">
+                        <label>Naam:</label>
+                        <input type="text" id="new-site-name" placeholder="bijv. Wikipedia">
+                    </div>
+                    <div class="form-group">
+                        <label>URL:</label>
+                        <input type="url" id="new-site-url" placeholder="https://www.wikipedia.org">
+                    </div>
+                    <div class="form-group">
+                        <label>Beschrijving (optioneel):</label>
+                        <input type="text" id="new-site-desc" placeholder="Korte beschrijving">
+                    </div>
+                    <div class="form-group">
+                        <label>Login Gebruikersnaam (optioneel):</label>
+                        <input type="text" id="new-site-username" placeholder="">
+                    </div>
+                    <div class="form-group">
+                        <label>Login Wachtwoord (optioneel):</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="new-site-password" placeholder="">
+                            <button type="button" class="password-toggle" id="toggle-password" title="Wachtwoord tonen/verbergen">👁️</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>🦸 Skills (optioneel):</label>
+                        <div id="new-site-skills" class="skills-selector">
+                            <div class="skill-tag" data-skill="login">🔐 Login</div>
+                            <div class="skill-tag" data-skill="forms">📝 Formulieren</div>
+                            <div class="skill-tag" data-skill="navigation">🧭 Navigatie</div>
+                            <div class="skill-tag" data-skill="ecommerce">🛒 E-commerce</div>
+                            <div class="skill-tag" data-skill="search">🔍 Zoeken</div>
+                            <div class="skill-tag" data-skill="api">🔌 API Testing</div>
+                            <div class="skill-tag" data-skill="accessibility">♿ Accessibility</div>
+                            <div class="skill-tag" data-skill="performance">⚡ Performance</div>
+                        </div>
+                        <small>Klik om skills te selecteren/deselecteren</small>
+                    </div>
+                    <div class="form-group">
+                        <label>🔗 Koppel Bestaande Tests (optioneel):</label>
+                        <div id="new-site-linked-tests" class="checkbox-list">
+                            <!-- Tests worden hier geladen -->
+                        </div>
+                        <small>Klik om tests te selecteren/deselecteren</small>
+                    </div>
+                    <button id="create-site-agent-btn" class="btn btn-primary">✅ Registreren</button>
+                </div>
+            </div>
+            
+            <!-- Modal: Genereer Test -->
+            <div id="generate-test-modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="modal-close">&times;</span>
+                    <h2>📝 Test Genereren</h2>
+                    <div class="form-group">
+                        <label>Test Naam:</label>
+                        <input type="text" id="generated-test-name" placeholder="bijv. login-flow">
+                    </div>
+                    <div class="form-group">
+                        <label>Wat moet de test doen?</label>
+                        <textarea id="generated-test-prompt" rows="4" placeholder="Beschrijf wat de test moet testen..."></textarea>
+                    </div>
+                    <button id="do-generate-test-btn" class="btn btn-primary">🚀 Genereren</button>
+                    <div id="generate-test-status" class="status-message"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+</body>
+</html>

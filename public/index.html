@@ -185,9 +185,14 @@ test('mijn test', async ({ page }) => {
             <div class="ai-agent-layout" id="ai-agent-layout">
                 <!-- Linker paneel: Site Agents & Config -->
                 <div class="ai-sidebar" id="ai-sidebar">
+                    <button id="ai-sidebar-toggle" class="sidebar-toggle-btn" title="Sidebar inklappen">
+                        <span class="toggle-icon">◀</span>
+                    </button>
+                    
                     <div class="ai-section">
-                        <h3 class="collapsible-header" data-target="ai-config-panel-wrapper">
-                            <span>⚙️ AI Configuratie</span>
+                        <h3 class="collapsible-header" data-target="ai-config-panel-wrapper" data-tooltip="AI Configuratie">
+                            <span class="section-icon">⚙️</span>
+                            <span class="section-label">AI Configuratie</span>
                             <button class="toggle-section-btn" title="Inklappen"></button>
                         </h3>
                         <div id="ai-config-panel-wrapper" class="collapsible-body">
@@ -230,8 +235,9 @@ test('mijn test', async ({ page }) => {
                     </div>
                     
                     <div class="ai-section">
-                        <h3 class="collapsible-header" data-target="site-agents-wrapper">
-                            <span>🏢 Site Agents</span>
+                        <h3 class="collapsible-header" data-target="site-agents-wrapper" data-tooltip="Site Agents">
+                            <span class="section-icon">🏢</span>
+                            <span class="section-label">Site Agents</span>
                             <button class="toggle-section-btn" title="Inklappen"></button>
                         </h3>
                         <div id="site-agents-wrapper" class="collapsible-body">

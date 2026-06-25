@@ -2306,6 +2306,38 @@ if (document.readyState === 'loading') {
     restoreCollapsibleState();
 }
 
+// Sidebar toggle (drawer inklappen)
+document.getElementById('ai-sidebar-toggle')?.addEventListener('click', () => {
+    const sidebar = document.getElementById('ai-sidebar');
+    const layout = document.getElementById('ai-agent-layout');
+    
+    sidebar.classList.toggle('collapsed');
+    layout.classList.toggle('sidebar-collapsed');
+    
+    // Sla state op
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('ai-sidebar-collapsed', isCollapsed ? '1' : '0');
+});
+
+// Herstel sidebar state bij laden
+function restoreSidebarState() {
+    const sidebar = document.getElementById('ai-sidebar');
+    const layout = document.getElementById('ai-agent-layout');
+    if (!sidebar || !layout) return;
+    
+    const isCollapsed = localStorage.getItem('ai-sidebar-collapsed') === '1';
+    if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        layout.classList.add('sidebar-collapsed');
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', restoreSidebarState);
+} else {
+    restoreSidebarState();
+}
+
 // Test AI configuratie
 document.getElementById('test-ai-config-btn')?.addEventListener('click', async () => {
     const btn = document.getElementById('test-ai-config-btn');

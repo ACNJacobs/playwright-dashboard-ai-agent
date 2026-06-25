@@ -65,17 +65,17 @@ async function loadTests() {
         testsList.innerHTML = tests.map(test => `
             <div class="card" data-test="${test.file}">
                 <div class="card-header">
-                    <h3>🧪 ${test.name}</h3>
+                    <h3><i class="fa-solid fa-flask"></i> ${test.name}</h3>
                     <span class="status-badge status-info">.spec.js</span>
                 </div>
                 <div class="card-meta">
-                    <span>📁 ${test.file}</span>
+                    <span><i class="fa-regular fa-file-code"></i> ${test.file}</span>
                 </div>
                 <div class="actions">
-                    <button class="btn btn-success btn-sm" onclick="runTest('${test.file}', false)">▶️ Uitvoeren</button>
-                    <button class="btn btn-primary btn-sm" onclick="runTest('${test.file}', true)">👁️ Met Browser</button>
-                    <button class="btn btn-warning btn-sm" onclick="editTest('${test.name}')">✏️ Bewerken</button>
-                    <button class="btn btn-danger btn-sm" onclick="deleteTest('${test.name}')">🗑️ Verwijderen</button>
+                    <button class="btn btn-success btn-sm" onclick="runTest('${test.file}', false)"><i class="fa-solid fa-play"></i> Uitvoeren</button>
+                    <button class="btn btn-primary btn-sm" onclick="runTest('${test.file}', true)"><i class="fa-solid fa-eye"></i> Met Browser</button>
+                    <button class="btn btn-warning btn-sm" onclick="editTest('${test.name}')"><i class="fa-solid fa-pen"></i> Bewerken</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTest('${test.name}')"><i class="fa-solid fa-trash"></i> Verwijderen</button>
                 </div>
             </div>
         `).join('');
@@ -246,7 +246,7 @@ async function editTest(testName) {
         
         // Verander knoptekst
         const createBtn = document.getElementById('create-test-btn');
-        createBtn.textContent = '💾 Opslaan';
+        createBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Opslaan';
         createBtn.onclick = () => updateTest(testName);
         
         switchTab('create');
@@ -284,7 +284,7 @@ async function updateTest(originalTestName) {
             document.getElementById('test-code').value = '';
             
             const createBtn = document.getElementById('create-test-btn');
-            createBtn.textContent = '➕ Test Aanmaken';
+            createBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Test Aanmaken';
             createBtn.onclick = createTest;
             
             switchTab('tests');
@@ -590,7 +590,7 @@ async function loadScheduledTestsUI() {
             const lastRun = test.lastRun ? new Date(test.lastRun).toLocaleString('nl-NL') : 'Nooit';
             const status = test.enabled ? 'Actief' : 'Gepauzeerd';
             const statusClass = test.enabled ? 'success' : 'warning';
-            const resultIcon = test.lastResult === 'success' ? '✅' : test.lastResult === 'failed' ? '❌' : '⏳';
+            const resultIcon = test.lastResult === 'success' ? '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>' : test.lastResult === 'failed' ? '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i>' : '<i class="fa-regular fa-clock" style="color:var(--text-muted)"></i>';
             
             return `
                 <div class="card">
@@ -599,13 +599,13 @@ async function loadScheduledTestsUI() {
                         <span class="status-badge status-${statusClass}">${status}</span>
                     </div>
                     <div class="card-meta">
-                        <span>⏱️ Elke ${test.intervalMinutes} min</span>
-                        <span>🕐 ${lastRun}</span>
+                        <span><i class="fa-regular fa-clock"></i> Elke ${test.intervalMinutes} min</span>
+                        <span><i class="fa-regular fa-calendar"></i> ${lastRun}</span>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-success btn-sm" onclick="runScheduledTestNow('${test.id}')">▶️ Nu Draaien</button>
-                        <button class="btn btn-secondary btn-sm" onclick="toggleScheduledTest('${test.id}', ${!test.enabled})">${test.enabled ? '⏸️ Pauzeren' : '▶️ Hervatten'}</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteScheduledTest('${test.id}')">🗑️ Verwijderen</button>
+                        <button class="btn btn-success btn-sm" onclick="runScheduledTestNow('${test.id}')"><i class="fa-solid fa-play"></i> Nu Draaien</button>
+                        <button class="btn btn-secondary btn-sm" onclick="toggleScheduledTest('${test.id}', ${!test.enabled})">${test.enabled ? '<i class="fa-solid fa-pause"></i> Pauzeren' : '<i class="fa-solid fa-play"></i> Hervatten'}</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteScheduledTest('${test.id}')"><i class="fa-solid fa-trash"></i> Verwijderen</button>
                     </div>
                 </div>
             `;
@@ -729,7 +729,7 @@ function toggleMenu() {
     
     // Update knop icoon
     if (btn) {
-        btn.querySelector('.menu-toggle-icon').textContent = isCollapsed ? '☰' : '✕';
+        btn.querySelector('.menu-toggle-icon').innerHTML = isCollapsed ? '<i class="fa-solid fa-bars"></i>' : '<i class="fa-solid fa-xmark"></i>';
         btn.title = isCollapsed ? 'Menu uitklappen' : 'Menu inklappen';
     }
     
@@ -749,7 +749,7 @@ function restoreMenuState() {
         body.classList.add('menu-collapsed');
         
         if (btn) {
-            btn.querySelector('.menu-toggle-icon').textContent = '☰';
+            btn.querySelector('.menu-toggle-icon').innerHTML = '<i class="fa-solid fa-bars"></i>';
             btn.title = 'Menu uitklappen';
         }
     }
@@ -817,7 +817,7 @@ async function fetchAiModels() {
     const provider = document.getElementById('ai-provider').value;
     
     btn.disabled = true;
-    btn.textContent = '⏳';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
     
     try {
         const response = await fetch('/api/ai-models');
@@ -846,7 +846,7 @@ async function fetchAiModels() {
         // Voeg custom optie toe
         const customOpt = document.createElement('option');
         customOpt.value = '__custom__';
-        customOpt.textContent = '✏️ Handmatig invoeren...';
+        customOpt.textContent = 'Handmatig invoeren...';
         select.appendChild(customOpt);
         
     } catch (error) {
@@ -854,11 +854,11 @@ async function fetchAiModels() {
         // Fallback: laat handmatig invoer toe
         select.innerHTML = `
             <option value="">-- Kies een model --</option>
-            <option value="__custom__">✏️ Handmatig invoeren...</option>
+            <option value="__custom__">Handmatig invoeren...</option>
         `;
     } finally {
         btn.disabled = false;
-        btn.textContent = '🔄';
+        btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i>';
     }
 }
 
@@ -948,17 +948,17 @@ async function loadSiteAgents() {
             <div class="agent-item ${currentSiteAgent?.id === agent.id ? 'active' : ''}" 
                  onclick="selectSiteAgent('${agent.id}')"
                  data-id="${agent.id}">
-                <div class="agent-icon">🏢</div>
+                <div class="agent-icon"><i class="fa-solid fa-building"></i></div>
                 <div class="agent-info">
                     <div class="agent-name">${agent.name}</div>
                     <div class="agent-url">${agent.baseUrl}</div>
                 </div>
                 <div class="agent-actions">
-                    <button class="btn-icon" onclick="event.stopPropagation(); editSiteAgent('${agent.id}')" title="Bewerken">✏️</button>
-                    <button class="btn-icon" onclick="event.stopPropagation(); deleteSiteAgent('${agent.id}')" title="Verwijderen">🗑️</button>
+                    <button class="btn-icon" onclick="event.stopPropagation(); editSiteAgent('${agent.id}')" title="Bewerken"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-icon" onclick="event.stopPropagation(); deleteSiteAgent('${agent.id}')" title="Verwijderen"><i class="fa-solid fa-trash"></i></button>
                 </div>
                 <div class="agent-status ${agent.isLearned ? 'learned' : ''}">
-                    ${agent.isLearned ? '🧠' : '⏳'}
+                    ${agent.isLearned ? '<i class="fa-solid fa-brain"></i>' : '<i class="fa-regular fa-clock"></i>'}
                 </div>
             </div>
         `).join('');
@@ -996,7 +996,7 @@ async function selectSiteAgent(id) {
         const testEditor = document.getElementById('test-editor-panel');
         if (testEditor) testEditor.classList.add('hidden');
         
-        document.getElementById('ai-chat-site-name').textContent = `🤖 ${agent.name}`;
+        document.getElementById('ai-chat-site-name').textContent = agent.name;
         
         // Welkom bericht
         addChatMessage('bot', `Hallo! Ik ben je test agent voor **${agent.name}**.\n\n${agent.isLearned 
@@ -1077,7 +1077,7 @@ function showSiteKnowledge(agent) {
     const container = document.getElementById('ai-knowledge-content');
     
     if (!agent.isLearned) {
-        container.innerHTML = '<p>📝 Site nog niet geanalyseerd. Klik op "🧠 Analyseren".</p>';
+        container.innerHTML = '<p><i class="fa-solid fa-file-pen"></i> Site nog niet geanalyseerd. Klik op "<i class="fa-solid fa-brain"></i> Analyseren".</p>';
         return;
     }
     
@@ -1086,7 +1086,7 @@ function showSiteKnowledge(agent) {
     // Meta info
     html += `
         <div class="knowledge-card">
-            <h4>📋 Algemeen</h4>
+            <h4><i class="fa-solid fa-circle-info"></i> Algemeen</h4>
             <ul>
                 <li><strong>Titel:</strong> ${agent.meta?.title || 'Onbekend'}</li>
                 <li><strong>URL:</strong> ${agent.meta?.url || agent.baseUrl}</li>
@@ -1099,7 +1099,7 @@ function showSiteKnowledge(agent) {
     if (Object.keys(agent.selectors || {}).length > 0) {
         html += `
             <div class="knowledge-card">
-                <h4>🎯 Selectors</h4>
+                <h4><i class="fa-solid fa-bullseye"></i> Selectors</h4>
                 <ul>
                     ${Object.entries(agent.selectors).map(([key, val]) => `
                         <li><strong>${key}:</strong> ${val}</li>
@@ -1113,7 +1113,7 @@ function showSiteKnowledge(agent) {
     if (agent.forms?.length > 0) {
         html += `
             <div class="knowledge-card">
-                <h4>📝 Formulieren (${agent.forms.length})</h4>
+                <h4><i class="fa-solid fa-pen-to-square"></i> Formulieren (${agent.forms.length})</h4>
                 <ul>
                     ${agent.forms.map((form, i) => `
                         <li>Form ${i+1}: ${form.inputs?.length || 0} velden</li>
@@ -1127,7 +1127,7 @@ function showSiteKnowledge(agent) {
     if (agent.navigation?.length > 0) {
         html += `
             <div class="knowledge-card">
-                <h4>🧭 Navigatie (${agent.navigation.length})</h4>
+                <h4><i class="fa-solid fa-compass"></i> Navigatie (${agent.navigation.length})</h4>
                 <ul>
                     ${agent.navigation.slice(0, 10).map(nav => `
                         <li>${nav.label || nav.path}</li>
@@ -1144,18 +1144,18 @@ function showSiteKnowledge(agent) {
     if (agent.skills?.length > 0) {
         html += `
             <div class="knowledge-card" style="margin-top:16px;">
-                <h4>🦸 Skills</h4>
+                <h4><i class="fa-solid fa-bolt"></i> Skills</h4>
                 <div class="agent-skills">
                     ${agent.skills.map(skill => {
                         const skillLabels = {
-                            login: '🔐 Login',
-                            forms: '📝 Formulieren',
-                            navigation: '🧭 Navigatie',
-                            ecommerce: '🛒 E-commerce',
-                            search: '🔍 Zoeken',
-                            api: '🔌 API Testing',
-                            accessibility: '♿ Accessibility',
-                            performance: '⚡ Performance'
+                            login: '<i class="fa-solid fa-lock"></i> Login',
+                            forms: '<i class="fa-solid fa-pen-to-square"></i> Formulieren',
+                            navigation: '<i class="fa-solid fa-compass"></i> Navigatie',
+                            ecommerce: '<i class="fa-solid fa-cart-shopping"></i> E-commerce',
+                            search: '<i class="fa-solid fa-magnifying-glass"></i> Zoeken',
+                            api: '<i class="fa-solid fa-plug"></i> API Testing',
+                            accessibility: '<i class="fa-solid fa-universal-access"></i> Accessibility',
+                            performance: '<i class="fa-solid fa-bolt"></i> Performance'
                         };
                         return `<span class="agent-skill-badge">${skillLabels[skill] || skill}</span>`;
                     }).join('')}
@@ -1168,13 +1168,13 @@ function showSiteKnowledge(agent) {
     if (agent.linkedTests?.length > 0) {
         html += `
             <div class="knowledge-card" style="margin-top:16px;">
-                <h4>🔗 Gekoppelde Tests (${agent.linkedTests.length})</h4>
+                <h4><i class="fa-solid fa-link"></i> Gekoppelde Tests (${agent.linkedTests.length})</h4>
                 <div class="linked-tests-list">
                     ${agent.linkedTests.map(testFile => `
                         <div class="linked-test-item">
-                            <span class="test-icon">🧪</span>
+                            <span class="test-icon"><i class="fa-solid fa-flask"></i></span>
                             <span class="test-name">${testFile.replace('.spec.js', '')}</span>
-                            <button class="btn btn-success btn-sm test-run-btn" onclick="runTest('${testFile}', false)">▶️</button>
+                            <button class="btn btn-success btn-sm test-run-btn" onclick="runTest('${testFile}', false)"><i class="fa-solid fa-play"></i></button>
                         </div>
                     `).join('')}
                 </div>
@@ -1191,7 +1191,7 @@ function addChatMessage(role, content, extraData = null) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${role}`;
     
-    const avatar = role === 'user' ? '👤' : '🤖';
+    const avatar = role === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot"></i>';
     
     // Convert markdown to HTML
     let formattedContent = content
@@ -1209,11 +1209,11 @@ function addChatMessage(role, content, extraData = null) {
     if (extraData && extraData.type === 'test-fix') {
         extraHtml = `
             <div class="ai-fix-panel">
-                <div class="ai-fix-header">🔧 AI Fix Voorgesteld</div>
+                <div class="ai-fix-header"><i class="fa-solid fa-wrench"></i> AI Fix Voorgesteld</div>
                 <div class="ai-fix-explanation">${extraData.explanation || ''}</div>
                 <div class="ai-fix-actions">
-                    <button class="btn btn-success btn-sm" onclick="applyAiFix('${extraData.testFile}', \`${extraData.fixedCode.replace(/`/g, '\\`')}\`)">✅ Pas Fix Toe</button>
-                    <button class="btn btn-secondary btn-sm" onclick="runFixedTest('${extraData.testFile}')">▶️ Test Uitvoeren</button>
+                    <button class="btn btn-success btn-sm" onclick="applyAiFix('${extraData.testFile}', \`${extraData.fixedCode.replace(/`/g, '\\`')}\`)"><i class="fa-solid fa-check"></i> Pas Fix Toe</button>
+                    <button class="btn btn-secondary btn-sm" onclick="runFixedTest('${extraData.testFile}')"><i class="fa-solid fa-play"></i> Test Uitvoeren</button>
                 </div>
                 ${extraData.screenshotPath ? `<div class="ai-fix-screenshot">
                     <img src="${extraData.screenshotPath}" alt="Fout screenshot" style="max-width:100%; border-radius:8px; margin-top:8px;">
@@ -1390,20 +1390,20 @@ function showTestPermissionDialog(originalMessage) {
     permissionDiv.className = 'chat-message bot permission-message';
     permissionDiv.id = 'test-permission-dialog';
     permissionDiv.innerHTML = `
-        <div class="avatar">🤖</div>
+        <div class="avatar"><i class="fa-solid fa-robot"></i></div>
         <div class="bubble">
-            <strong>🎭 Test Genereren & Uitvoeren</strong><br><br>
+            <strong><i class="fa-solid fa-masks-theater"></i> Test Genereren & Uitvoeren</strong><br><br>
             Ik ga een Playwright test genereren op basis van je vraag en deze direct uitvoeren in een zichtbare browser.<br><br>
             <strong>Wat er gaat gebeuren:</strong>
             <ul style="margin: 8px 0; padding-left: 20px;">
-                <li>📝 Test code genereren met AI</li>
-                <li>💾 Test opslaan als .spec.js bestand</li>
-                <li>🚀 Browser openen en test uitvoeren</li>
-                <li>📊 Live console output tonen</li>
+                <li><i class="fa-solid fa-file-pen"></i> Test code genereren met AI</li>
+                <li><i class="fa-solid fa-floppy-disk"></i> Test opslaan als .spec.js bestand</li>
+                <li><i class="fa-solid fa-window-maximize"></i> Browser openen en test uitvoeren</li>
+                <li><i class="fa-solid fa-terminal"></i> Live console output tonen</li>
             </ul>
             <div class="permission-actions" style="margin-top: 12px; display: flex; gap: 8px;">
-                <button class="btn btn-success btn-sm" onclick="approveTestGeneration('${originalMessage.replace(/'/g, "\\'")}')">✅ Goedkeuren & Starten</button>
-                <button class="btn btn-secondary btn-sm" onclick="rejectTestGeneration()">❌ Annuleren</button>
+                <button class="btn btn-success btn-sm" onclick="approveTestGeneration('${originalMessage.replace(/'/g, "\\'")}')"><i class="fa-solid fa-check"></i> Goedkeuren & Starten</button>
+                <button class="btn btn-secondary btn-sm" onclick="rejectTestGeneration()"><i class="fa-solid fa-xmark"></i> Annuleren</button>
             </div>
         </div>
     `;
@@ -1430,7 +1430,7 @@ async function approveTestGeneration(message) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'ai-loading';
     loadingDiv.id = 'chat-loading';
-    loadingDiv.textContent = '🧠 Test genereren...';
+    loadingDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Test genereren...';
     messagesDiv.appendChild(loadingDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
     
@@ -1483,11 +1483,11 @@ function createLiveConsolePanel(testFile) {
     consoleDiv.className = 'chat-message bot console-message';
     consoleDiv.id = `console-${testFile}`;
     consoleDiv.innerHTML = `
-        <div class="avatar">🖥️</div>
+        <div class="avatar"><i class="fa-solid fa-display"></i></div>
         <div class="bubble">
             <div class="console-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <strong>🖥️ Live Console: ${testFile}</strong>
-                <span class="console-status" id="status-${testFile}">⏳ Bezig...</span>
+                <strong><i class="fa-solid fa-display"></i> Live Console: ${testFile}</strong>
+                <span class="console-status" id="status-${testFile}"><i class="fa-solid fa-spinner fa-spin"></i> Bezig...</span>
             </div>
             <pre class="console-output" id="output-${testFile}" style="background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; max-height: 300px; overflow-y: auto; font-size: 0.85em; line-height: 1.4; margin: 0;"></pre>
         </div>
@@ -1517,7 +1517,7 @@ function updateLiveConsole(testFile, chunk, isError = false) {
 function completeLiveConsole(testFile, success) {
     const statusSpan = document.getElementById(`status-${testFile}`);
     if (statusSpan) {
-        statusSpan.textContent = success ? '✅ Voltooid' : '❌ Gefaald';
+        statusSpan.innerHTML = success ? '<i class="fa-solid fa-circle-check"></i> Voltooid' : '<i class="fa-solid fa-circle-xmark"></i> Gefaald';
         statusSpan.style.color = success ? '#28a745' : '#dc3545';
     }
 }
@@ -1528,7 +1528,7 @@ async function learnSite() {
     
     const btn = document.getElementById('ai-learn-btn');
     btn.disabled = true;
-    btn.textContent = '🧠 Bezig...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Bezig...';
     
     addChatMessage('bot', '🧠 Ik ga de site analyseren... Dit kan even duren.');
     
@@ -1551,7 +1551,7 @@ async function learnSite() {
         addChatMessage('bot', `❌ Fout: ${error.message}`);
     } finally {
         btn.disabled = false;
-        btn.textContent = '🧠 Analyseren';
+        btn.innerHTML = '<i class="fa-solid fa-brain"></i> Analyseren';
     }
 }
 
@@ -1587,7 +1587,7 @@ function showSiteKnowledgeModal(agent) {
     const container = document.getElementById('ai-knowledge-modal-content');
     
     if (!agent.isLearned) {
-        container.innerHTML = '<p>📝 Site nog niet geanalyseerd. Klik op "🧠 Analyseren".</p>';
+        container.innerHTML = '<p><i class="fa-solid fa-file-pen"></i> Site nog niet geanalyseerd. Klik op "<i class="fa-solid fa-brain"></i> Analyseren".</p>';
         return;
     }
     
@@ -1596,7 +1596,7 @@ function showSiteKnowledgeModal(agent) {
     // Meta info
     html += `
         <div class="knowledge-card">
-            <h4>📋 Algemeen</h4>
+            <h4><i class="fa-solid fa-circle-info"></i> Algemeen</h4>
             <ul>
                 <li><strong>Titel:</strong> ${agent.meta?.title || 'Onbekend'}</li>
                 <li><strong>URL:</strong> ${agent.meta?.url || agent.baseUrl}</li>
@@ -1609,7 +1609,7 @@ function showSiteKnowledgeModal(agent) {
     if (Object.keys(agent.selectors || {}).length > 0) {
         html += `
             <div class="knowledge-card">
-                <h4>🎯 Selectors</h4>
+                <h4><i class="fa-solid fa-bullseye"></i> Selectors</h4>
                 <ul>
                     ${Object.entries(agent.selectors).map(([key, val]) => `
                         <li><strong>${key}:</strong> ${val}</li>
@@ -1623,7 +1623,7 @@ function showSiteKnowledgeModal(agent) {
     if (agent.forms?.length > 0) {
         html += `
             <div class="knowledge-card">
-                <h4>📝 Formulieren (${agent.forms.length})</h4>
+                <h4><i class="fa-solid fa-pen-to-square"></i> Formulieren (${agent.forms.length})</h4>
                 <ul>
                     ${agent.forms.map((form, i) => `
                         <li>Form ${i+1}: ${form.inputs?.length || 0} velden</li>
@@ -1637,7 +1637,7 @@ function showSiteKnowledgeModal(agent) {
     if (agent.navigation?.length > 0) {
         html += `
             <div class="knowledge-card">
-                <h4>🧭 Navigatie (${agent.navigation.length})</h4>
+                <h4><i class="fa-solid fa-compass"></i> Navigatie (${agent.navigation.length})</h4>
                 <ul>
                     ${agent.navigation.map(nav => `
                         <li>${nav.text || nav.url} → ${nav.url}</li>
@@ -1710,7 +1710,7 @@ async function generateTest() {
     
     const btn = document.getElementById('do-generate-test-btn');
     btn.disabled = true;
-    btn.textContent = '🚀 Genereren...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Genereren...';
     
     statusDiv.className = 'status-message';
     statusDiv.textContent = '🧠 AI is bezig met genereren...';
@@ -1732,8 +1732,8 @@ async function generateTest() {
         if (result.success) {
             statusDiv.className = 'status-message success';
             statusDiv.innerHTML = `
-                ✅ Test "${result.file}" gegenereerd!<br>
-                🚀 Test wordt nu automatisch gestart...
+                <i class="fa-solid fa-circle-check"></i> Test "${result.file}" gegenereerd!<br>
+                <i class="fa-solid fa-rocket"></i> Test wordt nu automatisch gestart...
             `;
             
             // Voeg toe aan chat
@@ -1758,7 +1758,7 @@ async function generateTest() {
         statusDiv.textContent = '❌ Fout: ' + error.message;
     } finally {
         btn.disabled = false;
-        btn.textContent = '🚀 Genereren';
+        btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Genereren';
     }
 }
 
@@ -1868,7 +1868,7 @@ async function loadMcpTools() {
             mcpTools = data.tools;
             toolsList.innerHTML = data.tools.map(tool => `
                 <span class="mcp-tool-badge" title="${tool.description}">
-                    <span class="tool-icon">🛠️</span>
+                    <span class="tool-icon"><i class="fa-solid fa-wrench"></i></span>
                     ${tool.name.replace('playwright_', 'pw_')}
                 </span>
             `).join('');
@@ -1909,7 +1909,7 @@ function addMcpLogEntry(tool, args, result, duration) {
 
     entry.innerHTML = `
         <div class="mcp-log-header-row">
-            <span class="mcp-log-tool-name">🛠️ ${tool}</span>
+            <span class="mcp-log-tool-name"><i class="fa-solid fa-wrench"></i> ${tool}</span>
             <div>
                 <span class="mcp-log-time">${time}</span>
                 <span class="mcp-log-duration">${duration}ms</span>
@@ -1937,7 +1937,7 @@ function clearMcpLog() {
 
     logContent.innerHTML = `
         <div class="mcp-empty-state">
-            <span>🤖 MCP tools verschijnen hier wanneer de AI agent ze gebruikt</span>
+            <span><i class="fa-solid fa-robot"></i> MCP tools verschijnen hier wanneer de AI agent ze gebruikt</span>
             <br><small>Start een chat om te zien hoe Playwright wordt bestuurd</small>
         </div>
     `;
@@ -1954,7 +1954,7 @@ function toggleMcpConsole() {
     if (panel) {
         panel.classList.toggle('collapsed');
         const btn = document.getElementById('mcp-toggle-btn');
-        if (btn) btn.textContent = panel.classList.contains('collapsed') ? '⬆️' : '⬇️';
+        if (btn) btn.innerHTML = panel.classList.contains('collapsed') ? '<i class="fa-solid fa-chevron-up"></i>' : '<i class="fa-solid fa-chevron-down"></i>';
     }
 }
 
@@ -2001,7 +2001,7 @@ async function sendMcpChatMessage(overrideMessage = null) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'ai-loading';
     loadingDiv.id = 'chat-loading';
-    loadingDiv.textContent = '🤖 MCP Agent denkt na...';
+    loadingDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MCP Agent denkt na...';
     messagesDiv.appendChild(loadingDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
@@ -2099,7 +2099,7 @@ function openTestEditor(code = '', name = '') {
         generatedCodeBuffer = [code];
     }
     if (statusBadge) {
-        statusBadge.textContent = '📝 Code geladen';
+        statusBadge.innerHTML = '<i class="fa-solid fa-file-pen"></i> Code geladen';
         statusBadge.className = 'status-badge status-success';
     }
     
@@ -2116,7 +2116,7 @@ function clearTestEditor() {
     generatedCodeBuffer = [];
     
     if (statusBadge) {
-        statusBadge.textContent = '📝 Klaar voor code generatie';
+        statusBadge.innerHTML = '<i class="fa-solid fa-file-pen"></i> Klaar voor code generatie';
         statusBadge.className = 'status-badge status-info';
     }
 }
@@ -2146,7 +2146,7 @@ function appendToTestEditor(code, source = 'agent') {
     
     // Update status
     if (statusBadge) {
-        statusBadge.textContent = `📝 ${generatedCodeBuffer.length} snippet(s) gegenereerd`;
+        statusBadge.innerHTML = `<i class="fa-solid fa-file-pen"></i> ${generatedCodeBuffer.length} snippet(s) gegenereerd`;
         statusBadge.className = 'status-badge status-success';
     }
 }
@@ -2344,7 +2344,7 @@ document.getElementById('test-ai-config-btn')?.addEventListener('click', async (
     const statusDiv = document.getElementById('ai-config-status');
     
     btn.disabled = true;
-    btn.textContent = '⏳ Testen...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testen...';
     statusDiv.style.display = 'none';
     
     try {
@@ -2372,7 +2372,7 @@ document.getElementById('test-ai-config-btn')?.addEventListener('click', async (
         statusDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
-        btn.textContent = '🔌 Test';
+        btn.innerHTML = '<i class="fa-solid fa-plug"></i> Test';
     }
 });
 document.getElementById('add-site-agent-btn').addEventListener('click', () => {
@@ -2393,11 +2393,11 @@ document.getElementById('toggle-password').addEventListener('click', () => {
     const btn = document.getElementById('toggle-password');
     if (pwInput.type === 'password') {
         pwInput.type = 'text';
-        btn.textContent = '🙈';
+        btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
         btn.title = 'Wachtwoord verbergen';
     } else {
         pwInput.type = 'password';
-        btn.textContent = '👁️';
+        btn.innerHTML = '<i class="fa-solid fa-eye"></i>';
         btn.title = 'Wachtwoord tonen';
     }
 });

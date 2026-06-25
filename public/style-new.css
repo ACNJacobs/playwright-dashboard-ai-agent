@@ -5,34 +5,37 @@
    PLAYWRIGHT DASHBOARD - ZAKELIJKE STIJL
    ============================================ */
 
-/* CSS Variables voor consistent thema */
+/* CSS Variables — SCAFF "Slate & Blue" design system
+   Rustige zinc/slate neutralen + één blauw-indigo accent (blurple). */
 :root {
-    --primary: #1a365d;
-    --primary-light: #2c5282;
-    --primary-dark: #0d1b2a;
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --success: #059669;
-    --success-light: #d1fae5;
+    --primary: #18181b;
+    --primary-light: #27272a;
+    --primary-dark: #09090b;
+    --accent: #3b5bdb;
+    --accent-hover: #2f4bc0;
+    --accent-active: #283fa0;
+    --accent-soft: #eef1fd;
+    --success: #16a34a;
+    --success-light: #dcfce7;
     --warning: #d97706;
     --warning-light: #fef3c7;
     --danger: #dc2626;
     --danger-light: #fee2e2;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
-    --bg-body: #f1f5f9;
+    --text-primary: #18181b;
+    --text-secondary: #52525b;
+    --text-muted: #a1a1aa;
+    --bg-body: #fafafa;
     --bg-card: #ffffff;
-    --bg-sidebar: #0f172a;
-    --border: #e2e8f0;
-    --border-light: #f1f5f9;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --bg-sidebar: #18181b;
+    --border: #e4e4e7;
+    --border-light: #f4f4f5;
+    --shadow-sm: 0 1px 2px 0 rgba(16, 24, 40, 0.06);
+    --shadow: 0 1px 3px 0 rgba(16, 24, 40, 0.08), 0 1px 2px -1px rgba(16, 24, 40, 0.06);
+    --shadow-lg: 0 8px 24px -4px rgba(16, 24, 40, 0.12), 0 4px 8px -4px rgba(16, 24, 40, 0.06);
     --radius-sm: 6px;
     --radius: 8px;
     --radius-lg: 12px;
-    --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 /* Reset & Base */
@@ -1146,7 +1149,7 @@ main {
 
 .agent-item:hover {
     border-color: var(--accent);
-    background: #eff6ff;
+    background: var(--accent-soft);
 }
 
 .agent-item.active {
@@ -1803,7 +1806,7 @@ main {
 
 .skill-tag:hover {
     border-color: var(--accent);
-    background: #eff6ff;
+    background: var(--accent-soft);
 }
 
 .skill-tag.selected {
@@ -1964,7 +1967,7 @@ main {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+    background: var(--primary);
     color: white;
 }
 
@@ -2023,7 +2026,7 @@ main {
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 500;
-    background: #e0e7ff;
+    background: var(--accent-soft);
     color: #3730a3;
     border: 1px solid #c7d2fe;
     cursor: default;
@@ -2210,7 +2213,7 @@ main {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+    background: var(--primary);
     color: white;
     flex-shrink: 0;
 }

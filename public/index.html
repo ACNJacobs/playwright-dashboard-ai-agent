@@ -6,13 +6,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Playwright Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="style-new.css">
 </head>
 <body>
     <header>
         <div class="header-content">
             <div class="header-brand">
-                <div class="logo">🎭</div>
+                <div class="logo"><i class="fa-solid fa-masks-theater"></i></div>
                 <div class="header-brand-text">
                     <h1>Playwright Dashboard</h1>
                     <p class="header-subtitle">Beheer je tests, bekijk resultaten en genereer rapporten</p>
@@ -20,7 +24,7 @@
             </div>
             <div class="header-meta">
                 <button id="menu-toggle-btn" class="btn btn-secondary btn-sm menu-toggle" title="Menu inklappen/uitklappen">
-                    <span class="menu-toggle-icon">☰</span>
+                    <span class="menu-toggle-icon"><i class="fa-solid fa-bars"></i></span>
                 </button>
                 <span class="version">v1.0.0 — Ton Jacobs</span>
             </div>
@@ -29,31 +33,31 @@
 
     <nav class="tabs" id="main-nav">
         <button class="tab-btn active" data-tab="tests" data-icon="🧪" title="Tests">
-            <span class="tab-icon">🧪</span>
+            <span class="tab-icon"><i class="fa-solid fa-flask"></i></span>
             <span class="tab-label">Tests</span>
         </button>
         <button class="tab-btn" data-tab="videos" data-icon="🎬" title="Video's">
-            <span class="tab-icon">🎬</span>
+            <span class="tab-icon"><i class="fa-solid fa-film"></i></span>
             <span class="tab-label">Video's</span>
         </button>
         <button class="tab-btn" data-tab="screenshots" data-icon="📸" title="Screenshots">
-            <span class="tab-icon">📸</span>
+            <span class="tab-icon"><i class="fa-solid fa-camera"></i></span>
             <span class="tab-label">Screenshots</span>
         </button>
         <button class="tab-btn" data-tab="create" data-icon="➕" title="Nieuwe Test">
-            <span class="tab-icon">➕</span>
+            <span class="tab-icon"><i class="fa-solid fa-plus"></i></span>
             <span class="tab-label">Nieuwe Test</span>
         </button>
         <button class="tab-btn" data-tab="codegen" data-icon="🎥" title="Codegen">
-            <span class="tab-icon">🎥</span>
+            <span class="tab-icon"><i class="fa-solid fa-video"></i></span>
             <span class="tab-label">Codegen</span>
         </button>
         <button class="tab-btn" data-tab="scheduled" data-icon="⏰" title="Gepland">
-            <span class="tab-icon">⏰</span>
+            <span class="tab-icon"><i class="fa-solid fa-clock"></i></span>
             <span class="tab-label">Gepland</span>
         </button>
         <button class="tab-btn" data-tab="ai-agent" data-icon="🤖" title="AI Agent">
-            <span class="tab-icon">🤖</span>
+            <span class="tab-icon"><i class="fa-solid fa-robot"></i></span>
             <span class="tab-label">AI Agent</span>
         </button>
     </nav>
@@ -63,9 +67,9 @@
         <!-- Tests Tab -->
         <section id="tests-tab" class="tab-content active">
             <div class="actions">
-                <button id="run-all-btn" class="btn btn-primary">▶️ Alle Tests Uitvoeren</button>
-                <button id="refresh-tests-btn" class="btn btn-secondary">🔄 Verversen</button>
-                <button id="open-report-btn" class="btn btn-secondary">📊 Rapport</button>
+                <button id="run-all-btn" class="btn btn-primary"><i class="fa-solid fa-play"></i> Alle Tests Uitvoeren</button>
+                <button id="refresh-tests-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-right"></i> Verversen</button>
+                <button id="open-report-btn" class="btn btn-secondary"><i class="fa-solid fa-chart-column"></i> Rapport</button>
             </div>
             <div id="tests-list" class="card-grid">
                 <!-- Tests worden hier geladen -->
@@ -79,7 +83,7 @@
         <!-- Videos Tab -->
         <section id="videos-tab" class="tab-content">
             <div class="actions">
-                <button id="refresh-videos-btn" class="btn btn-secondary">🔄 Verversen</button>
+                <button id="refresh-videos-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-right"></i> Verversen</button>
             </div>
             <div id="videos-list" class="card-grid">
                 <!-- Video's worden hier geladen -->
@@ -89,7 +93,7 @@
         <!-- Screenshots Tab -->
         <section id="screenshots-tab" class="tab-content">
             <div class="actions">
-                <button id="refresh-screenshots-btn" class="btn btn-secondary">🔄 Verversen</button>
+                <button id="refresh-screenshots-btn" class="btn btn-secondary"><i class="fa-solid fa-rotate-right"></i> Verversen</button>
             </div>
             <div id="screenshots-list" class="card-grid">
                 <!-- Screenshots worden hier geladen -->
@@ -99,7 +103,7 @@
         <!-- Create Test Tab -->
         <section id="create-tab" class="tab-content">
             <div class="form-card">
-                <h2>➕ Nieuwe Test Maken</h2>
+                <h2><i class="fa-solid fa-plus"></i> Nieuwe Test Maken</h2>
                 <div class="form-group">
                     <label for="test-name">Test Naam:</label>
                     <input type="text" id="test-name" placeholder="bijv. login-test">
@@ -107,26 +111,26 @@
                 <div class="form-group">
                     <label for="test-code">Test Code:</label>
                     <div class="snippet-toolbar">
-                        <span class="toolbar-label">🛠️ Snippets:</span>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('template')" title="Basis test template">📄 Template</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('goto')" title="Ga naar URL">🔗 Goto</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('click')" title="Klik op element">🖱️ Click</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('fill')" title="Vul tekst in">⌨️ Fill</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectText')" title="Controleer tekst">✅ Expect Text</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectVisible')" title="Controleer zichtbaar">👁️ Expect Visible</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectPrice')" title="Controleer prijs/bedrag">💰 Expect Price</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('screenshot')" title="Maak screenshot">📸 Screenshot</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('wait')" title="Wacht even">⏳ Wait</button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('video')" title="Start video opname">🎥 Video</button>
+                        <span class="toolbar-label"><i class="fa-solid fa-screwdriver-wrench"></i> Snippets:</span>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('template')" title="Basis test template"><i class="fa-solid fa-file-lines"></i> Template</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('goto')" title="Ga naar URL"><i class="fa-solid fa-link"></i> Goto</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('click')" title="Klik op element"><i class="fa-solid fa-arrow-pointer"></i> Click</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('fill')" title="Vul tekst in"><i class="fa-solid fa-keyboard"></i> Fill</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectText')" title="Controleer tekst"><i class="fa-solid fa-check"></i> Expect Text</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectVisible')" title="Controleer zichtbaar"><i class="fa-solid fa-eye"></i> Expect Visible</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectPrice')" title="Controleer prijs/bedrag"><i class="fa-solid fa-money-bill"></i> Expect Price</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('screenshot')" title="Maak screenshot"><i class="fa-solid fa-camera"></i> Screenshot</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('wait')" title="Wacht even"><i class="fa-solid fa-hourglass-half"></i> Wait</button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('video')" title="Start video opname"><i class="fa-solid fa-video"></i> Video</button>
                     </div>
                     <!-- Code Zoekbalk -->
                     <div class="code-search-bar">
-                        <input type="text" id="code-search-input" placeholder="🔍 Zoek in code..." oninput="searchInCode()">
+                        <input type="text" id="code-search-input" placeholder="Zoek in code..." oninput="searchInCode()">
                         <div class="code-search-nav">
                             <span id="code-search-count">0/0</span>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="findPrevMatch()" title="Vorige">⬆️</button>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="findNextMatch()" title="Volgende">⬇️</button>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="clearCodeSearch()" title="Wissen">❌</button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="findPrevMatch()" title="Vorige"><i class="fa-solid fa-chevron-up"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="findNextMatch()" title="Volgende"><i class="fa-solid fa-chevron-down"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="clearCodeSearch()" title="Wissen"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
                     <textarea id="test-code" rows="15" placeholder="const { test, expect } = require('@playwright/test');
@@ -136,20 +140,20 @@ test('mijn test', async ({ page }) => {
   await expect(page).toHaveTitle('Example');
 });"></textarea>
                 </div>
-                <button id="create-test-btn" class="btn btn-primary">💾 Test Opslaan</button>
+                <button id="create-test-btn" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Test Opslaan</button>
             </div>
         </section>
 
         <!-- Codegen Tab -->
         <section id="codegen-tab" class="tab-content">
             <div class="form-card">
-                <h2>🎥 Codegen Starten</h2>
+                <h2><i class="fa-solid fa-video"></i> Codegen Starten</h2>
                 <p>Start Playwright codegen om handelingen op te nemen.</p>
                 <div class="form-group">
                     <label for="codegen-url">URL:</label>
                     <input type="text" id="codegen-url" placeholder="https://example.com" value="https://www.wikipedia.org">
                 </div>
-                <button id="start-codegen-btn" class="btn btn-primary">🚀 Start Codegen</button>
+                <button id="start-codegen-btn" class="btn btn-primary"><i class="fa-solid fa-circle-play"></i> Start Codegen</button>
                 <div id="codegen-status" class="status-message"></div>
             </div>
         </section>
@@ -157,7 +161,7 @@ test('mijn test', async ({ page }) => {
         <!-- Scheduled Tests Tab -->
         <section id="scheduled-tab" class="tab-content">
             <div class="form-card">
-                <h2>⏰ Terugkerende Tests</h2>
+                <h2><i class="fa-solid fa-clock"></i> Terugkerende Tests</h2>
                 <p>Plan tests om automatisch op vaste tijden te draaien.</p>
                 
                 <div class="form-group">
@@ -171,7 +175,7 @@ test('mijn test', async ({ page }) => {
                     <input type="number" id="scheduled-interval" value="60" min="1" max="1440">
                     <small>Bijv. 60 = elk uur, 1440 = elke dag</small>
                 </div>
-                <button id="add-scheduled-btn" class="btn btn-primary">➕ Toevoegen</button>
+                <button id="add-scheduled-btn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Toevoegen</button>
             </div>
             
             <h3>Geplande Tests</h3>
@@ -191,7 +195,7 @@ test('mijn test', async ({ page }) => {
                     
                     <div class="ai-section">
                         <h3 class="collapsible-header" data-target="ai-config-panel-wrapper" data-tooltip="AI Configuratie">
-                            <span class="section-icon">⚙️</span>
+                            <span class="section-icon"><i class="fa-solid fa-gear"></i></span>
                             <span class="section-label">AI Configuratie</span>
                             <button class="toggle-section-btn" title="Inklappen"></button>
                         </h3>
@@ -217,7 +221,7 @@ test('mijn test', async ({ page }) => {
                                         <select id="ai-model-select">
                                             <option value="">-- Kies een model --</option>
                                         </select>
-                                        <button id="ai-fetch-models-btn" class="btn btn-secondary btn-sm" title="Modellen ophalen">🔄</button>
+                                        <button id="ai-fetch-models-btn" class="btn btn-secondary btn-sm" title="Modellen ophalen"><i class="fa-solid fa-rotate-right"></i></button>
                                     </div>
                                     <input type="text" id="ai-model" placeholder="of typ handmatig..." style="margin-top:6px;">
                                 </div>
@@ -226,8 +230,8 @@ test('mijn test', async ({ page }) => {
                                     <input type="text" id="ai-endpoint" placeholder="https://...">
                                 </div>
                                 <div class="btn-row">
-                                    <button id="save-ai-config-btn" class="btn btn-primary btn-sm">💾 Opslaan</button>
-                                    <button id="test-ai-config-btn" class="btn btn-secondary btn-sm">🔌 Test</button>
+                                    <button id="save-ai-config-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk"></i> Opslaan</button>
+                                    <button id="test-ai-config-btn" class="btn btn-secondary btn-sm"><i class="fa-solid fa-plug"></i> Test</button>
                                 </div>
                                 <div id="ai-config-status" class="status-message"></div>
                             </div>
@@ -236,7 +240,7 @@ test('mijn test', async ({ page }) => {
                     
                     <div class="ai-section">
                         <h3 class="collapsible-header" data-target="site-agents-wrapper" data-tooltip="Site Agents">
-                            <span class="section-icon">🏢</span>
+                            <span class="section-icon"><i class="fa-solid fa-building"></i></span>
                             <span class="section-label">Site Agents</span>
                             <button class="toggle-section-btn" title="Inklappen"></button>
                         </h3>
@@ -244,7 +248,7 @@ test('mijn test', async ({ page }) => {
                             <div id="site-agents-list" class="agent-list">
                                 <!-- Site agents worden hier geladen -->
                             </div>
-                            <button id="add-site-agent-btn" class="btn btn-success btn-sm">➕ Nieuwe Site</button>
+                            <button id="add-site-agent-btn" class="btn btn-success btn-sm"><i class="fa-solid fa-plus"></i> Nieuwe Site</button>
                         </div>
                     </div>
                 </div>
@@ -255,7 +259,7 @@ test('mijn test', async ({ page }) => {
                         <div class="ai-chat-header">
                             <span id="ai-chat-site-name">Site Agent</span>
                             <div class="ai-chat-actions">
-                                <button id="ai-generate-test-btn" class="btn btn-success btn-sm">📝 Genereer Test</button>
+                                <button id="ai-generate-test-btn" class="btn btn-success btn-sm"><i class="fa-solid fa-file-pen"></i> Genereer Test</button>
                             </div>
                         </div>
                         <div id="ai-chat-messages" class="ai-chat-messages">
@@ -267,14 +271,14 @@ test('mijn test', async ({ page }) => {
                             </div>
                             <!-- Handmatige actie input -->
                             <div class="manual-action-row">
-                                <input type="text" id="manual-action-input" placeholder="🖱️ Typ een handmatige actie: 'klik op Inloggen', 'vul Username in met testuser'..." />
-                                <button id="manual-action-btn" class="btn btn-primary btn-sm">▶️ Uitvoeren</button>
+                                <input type="text" id="manual-action-input" placeholder="Typ een handmatige actie: 'klik op Inloggen', 'vul Username in met testuser'..." />
+                                <button id="manual-action-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Uitvoeren</button>
                             </div>
                             <div class="ai-chat-actions-row">
                                 <button id="ai-chat-send-btn" class="btn btn-primary">Verstuur</button>
-                                <button id="ai-new-test-btn" class="btn btn-success">➕ Nieuwe Test</button>
-                                <button id="ai-clear-chat-btn" class="btn btn-secondary">🗑️ Wis Chat</button>
-                                <button id="ai-done-btn" class="btn btn-warning">✅ Klaar</button>
+                                <button id="ai-new-test-btn" class="btn btn-success"><i class="fa-solid fa-plus"></i> Nieuwe Test</button>
+                                <button id="ai-clear-chat-btn" class="btn btn-secondary"><i class="fa-solid fa-trash"></i> Wis Chat</button>
+                                <button id="ai-done-btn" class="btn btn-warning"><i class="fa-solid fa-check"></i> Klaar</button>
                             </div>
                         </div>
                     </div>
@@ -284,17 +288,17 @@ test('mijn test', async ({ page }) => {
                 <div class="ai-editor-pane" id="ai-editor-pane">
                     <div id="test-editor-panel" class="test-editor-panel">
                         <div class="test-editor-header">
-                            <span class="test-editor-title">📝 Test Editor</span>
+                            <span class="test-editor-title"><i class="fa-solid fa-file-pen"></i> Test Editor</span>
                             <div class="test-editor-actions">
-                                <button id="test-editor-save-btn" class="btn btn-success btn-sm">💾 Opslaan</button>
-                                <button id="test-editor-run-btn" class="btn btn-primary btn-sm">▶️ Uitvoeren</button>
-                                <button id="test-editor-clear-btn" class="btn btn-secondary btn-sm">🗑️ Wis</button>
+                                <button id="test-editor-save-btn" class="btn btn-success btn-sm"><i class="fa-solid fa-floppy-disk"></i> Opslaan</button>
+                                <button id="test-editor-run-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Uitvoeren</button>
+                                <button id="test-editor-clear-btn" class="btn btn-secondary btn-sm"><i class="fa-solid fa-trash"></i> Wis</button>
                             </div>
                         </div>
                         <div class="test-editor-body">
                             <input type="text" id="test-editor-name" class="test-editor-name-input" placeholder="Test naam..." value="">
                             <div class="test-editor-status" id="test-editor-status">
-                                <span class="status-badge status-info" id="codegen-status-badge">📝 Klaar voor code generatie</span>
+                                <span class="status-badge status-info" id="codegen-status-badge"><i class="fa-solid fa-file-pen"></i> Klaar voor code generatie</span>
                             </div>
                             <textarea id="test-editor-code" class="test-editor-code" placeholder="// Start een conversatie om Playwright code te genereren
 // De agent zal hier live code verschijnen terwijl hij de site doorloopt
@@ -315,7 +319,7 @@ test('voorbeeld', async ({ page }) => {
             <div id="ai-help-modal" class="modal hidden">
                 <div class="modal-content modal-wide">
                     <span class="modal-close">&times;</span>
-                    <h2>🤖 Welkom bij je AI Test Agent</h2>
+                    <h2><i class="fa-solid fa-robot"></i> Welkom bij je AI Test Agent</h2>
                     <div class="help-content">
                         <div class="help-step">
                             <div class="help-number">1</div>
@@ -328,14 +332,14 @@ test('voorbeeld', async ({ page }) => {
                             <div class="help-number">2</div>
                             <div class="help-text">
                                 <strong>Registreer een nieuwe site</strong>
-                                <p>Klik op "➕ Nieuwe Site" en vul de naam en URL in.</p>
+                                <p>Klik op "<i class="fa-solid fa-plus"></i> Nieuwe Site" en vul de naam en URL in.</p>
                             </div>
                         </div>
                         <div class="help-step">
                             <div class="help-number">3</div>
                             <div class="help-text">
                                 <strong>Laat de agent de site analyseren</strong>
-                                <p>Klik op "🧠 Analyseren" om de agent de site te laten verkennen.</p>
+                                <p>Klik op "<i class="fa-solid fa-brain"></i> Analyseren" om de agent de site te laten verkennen.</p>
                             </div>
                         </div>
                         <div class="help-step">
@@ -353,12 +357,12 @@ test('voorbeeld', async ({ page }) => {
             <div id="ai-knowledge-modal" class="modal hidden">
                 <div class="modal-content modal-wide">
                     <span class="modal-close">&times;</span>
-                    <h2>🧠 Site Kennis</h2>
+                    <h2><i class="fa-solid fa-brain"></i> Site Kennis</h2>
                     <div id="ai-knowledge-modal-content">
                         <!-- Kennis wordt hier getoond -->
                     </div>
                     <div class="knowledge-editor">
-                        <h4>➕ Handmatig Kennis Toevoegen</h4>
+                        <h4><i class="fa-solid fa-plus"></i> Handmatig Kennis Toevoegen</h4>
                         <div class="form-group">
                             <label>Type:</label>
                             <select id="knowledge-type">
@@ -376,7 +380,7 @@ test('voorbeeld', async ({ page }) => {
                             <label>Waarde/Beschrijving:</label>
                             <input type="text" id="knowledge-value" placeholder="bijv. #login-btn of beschrijving">
                         </div>
-                        <button id="add-knowledge-btn" class="btn btn-primary btn-sm">💾 Toevoegen</button>
+                        <button id="add-knowledge-btn" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk"></i> Toevoegen</button>
                     </div>
                 </div>
             </div>
@@ -386,7 +390,7 @@ test('voorbeeld', async ({ page }) => {
             <div id="site-agent-modal" class="modal hidden">
                 <div class="modal-content">
                     <span class="modal-close">&times;</span>
-                    <h2>➕ Nieuwe Site Registreren</h2>
+                    <h2><i class="fa-solid fa-plus"></i> Nieuwe Site Registreren</h2>
                     <div class="form-group">
                         <label>Naam:</label>
                         <input type="text" id="new-site-name" placeholder="bijv. Wikipedia">
@@ -407,31 +411,31 @@ test('voorbeeld', async ({ page }) => {
                         <label>Login Wachtwoord (optioneel):</label>
                         <div class="password-wrapper">
                             <input type="password" id="new-site-password" placeholder="">
-                            <button type="button" class="password-toggle" id="toggle-password" title="Wachtwoord tonen/verbergen">👁️</button>
+                            <button type="button" class="password-toggle" id="toggle-password" title="Wachtwoord tonen/verbergen"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>🦸 Skills (optioneel):</label>
+                        <label><i class="fa-solid fa-bolt"></i> Skills (optioneel):</label>
                         <div id="new-site-skills" class="skills-selector">
-                            <div class="skill-tag" data-skill="login">🔐 Login</div>
-                            <div class="skill-tag" data-skill="forms">📝 Formulieren</div>
-                            <div class="skill-tag" data-skill="navigation">🧭 Navigatie</div>
-                            <div class="skill-tag" data-skill="ecommerce">🛒 E-commerce</div>
-                            <div class="skill-tag" data-skill="search">🔍 Zoeken</div>
-                            <div class="skill-tag" data-skill="api">🔌 API Testing</div>
-                            <div class="skill-tag" data-skill="accessibility">♿ Accessibility</div>
-                            <div class="skill-tag" data-skill="performance">⚡ Performance</div>
+                            <div class="skill-tag" data-skill="login"><i class="fa-solid fa-lock"></i> Login</div>
+                            <div class="skill-tag" data-skill="forms"><i class="fa-solid fa-pen-to-square"></i> Formulieren</div>
+                            <div class="skill-tag" data-skill="navigation"><i class="fa-solid fa-compass"></i> Navigatie</div>
+                            <div class="skill-tag" data-skill="ecommerce"><i class="fa-solid fa-cart-shopping"></i> E-commerce</div>
+                            <div class="skill-tag" data-skill="search"><i class="fa-solid fa-magnifying-glass"></i> Zoeken</div>
+                            <div class="skill-tag" data-skill="api"><i class="fa-solid fa-plug"></i> API Testing</div>
+                            <div class="skill-tag" data-skill="accessibility"><i class="fa-solid fa-universal-access"></i> Accessibility</div>
+                            <div class="skill-tag" data-skill="performance"><i class="fa-solid fa-bolt"></i> Performance</div>
                         </div>
                         <small>Klik om skills te selecteren/deselecteren</small>
                     </div>
                     <div class="form-group">
-                        <label>🔗 Koppel Bestaande Tests (optioneel):</label>
+                        <label><i class="fa-solid fa-link"></i> Koppel Bestaande Tests (optioneel):</label>
                         <div id="new-site-linked-tests" class="checkbox-list">
                             <!-- Tests worden hier geladen -->
                         </div>
                         <small>Klik om tests te selecteren/deselecteren</small>
                     </div>
-                    <button id="create-site-agent-btn" class="btn btn-primary">✅ Registreren</button>
+                    <button id="create-site-agent-btn" class="btn btn-primary"><i class="fa-solid fa-check"></i> Registreren</button>
                 </div>
             </div>
             
@@ -439,7 +443,7 @@ test('voorbeeld', async ({ page }) => {
             <div id="generate-test-modal" class="modal hidden">
                 <div class="modal-content">
                     <span class="modal-close">&times;</span>
-                    <h2>📝 Test Genereren</h2>
+                    <h2><i class="fa-solid fa-file-pen"></i> Test Genereren</h2>
                     <div class="form-group">
                         <label>Test Naam:</label>
                         <input type="text" id="generated-test-name" placeholder="bijv. login-flow">

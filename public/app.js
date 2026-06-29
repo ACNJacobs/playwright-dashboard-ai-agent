@@ -594,18 +594,56 @@ async function loadScheduledTestsUI() {
             const statusClass = test.enabled ? 'success' : 'warning';
             const resultIcon = test.lastResult === 'success' ? '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>' : test.lastResult === 'failed' ? '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i>' : '<i class="fa-regular fa-clock" style="color:var(--text-muted)"></i>';
             
+            // Format schedule description based on schedule type
+            let scheduleDescription = '';
+            switch (test.scheduleType) {
+                case 'interval':
+                    scheduleDescription = `Elke ${test.intervalMinutes} min`;
+                    break;
+                case 'hourly':
+                    scheduleDescription = 'Elk uur';
+                    break;
+                case 'daily':
+                    scheduleDescription = `Dagelijks om ${test.time}`;
+                    break;
+                case 'weekly':
+                    const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+                    scheduleDescription = `Wekelijks op ${days[test.dayOfWeek]} om ${test.time}`;
+                    break;
+                case 'monthly':
+                    scheduleDescription = `Maandelijks op dag ${test.dayOfMonth} om ${test.time}`;
+                    break;
+                default:
+                    scheduleDescription = `Elke ${test.intervalMinutes || 60} min`;
+            }
+            
+            // Next run info
+            const nextRunHtml = test.enabled && test.nextRunFormatted 
+                ? `<span><i class="fa-solid fa-arrow-right" style="color:var(--info)"></i> <strong>Volgende:</strong> ${test.nextRunFormatted}</span>` 
+                : '';
+            
+            // Run history summary
+            const historyCount = test.runHistory ? test.runHistory.length : 0;
+            const successCount = test.runHistory ? test.runHistory.filter(h => h.result === 'success').length : 0;
+            const historyHtml = historyCount > 0 
+                ? `<span><i class="fa-solid fa-chart-line" style="color:var(--text-muted)"></i> ${successCount}/${historyCount} succes</span>` 
+                : '';
+            
             return `
-                <div class="card">
+                <div class="card" data-schedule-id="${test.id}">
                     <div class="card-header">
                         <h3>${resultIcon} ${test.testFile}</h3>
                         <span class="status-badge status-${statusClass}">${status}</span>
                     </div>
                     <div class="card-meta">
-                        <span><i class="fa-regular fa-clock"></i> Elke ${test.intervalMinutes} min</span>
-                        <span><i class="fa-regular fa-calendar"></i> ${lastRun}</span>
+                        <span><i class="fa-regular fa-clock"></i> ${scheduleDescription}</span>
+                        <span><i class="fa-regular fa-calendar"></i> Laatste: ${lastRun}</span>
+                        ${nextRunHtml}
+                        ${historyHtml}
                     </div>
                     <div class="actions">
                         <button class="btn btn-success btn-sm" title="Nu Draaien" onclick="runScheduledTestNow('${test.id}')"><i class="fa-solid fa-play"></i></button>
+                        <button class="btn btn-warning btn-sm" title="Bewerken" onclick="editScheduledTest('${test.id}')"><i class="fa-solid fa-pen"></i></button>
                         <button class="btn btn-secondary btn-sm" title="${test.enabled ? 'Pauzeren' : 'Hervatten'}" onclick="toggleScheduledTest('${test.id}', ${!test.enabled})">${test.enabled ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>'}</button>
                         <button class="btn btn-danger btn-sm" title="Verwijderen" onclick="deleteScheduledTest('${test.id}')"><i class="fa-solid fa-trash"></i></button>
                     </div>
@@ -620,18 +658,71 @@ async function loadScheduledTestsUI() {
 // Voeg geplande test toe
 async function addScheduledTest() {
     const testFile = document.getElementById('scheduled-test-select').value;
-    const interval = document.getElementById('scheduled-interval').value;
+    const scheduleType = document.getElementById('schedule-type').value;
     
     if (!testFile) {
         alert('Kies een test!');
         return;
     }
     
+    // Validate required fields based on schedule type
+    let requestData = { testFile, scheduleType, enabled: true };
+    
+    switch (scheduleType) {
+        case 'interval':
+            const interval = document.getElementById('scheduled-interval').value;
+            if (!interval) {
+                alert('Vul het interval in!');
+                return;
+            }
+            requestData.intervalMinutes = parseInt(interval);
+            break;
+            
+        case 'hourly':
+            // No additional parameters needed
+            break;
+            
+        case 'daily':
+            const time = document.getElementById('scheduled-time').value;
+            if (!time) {
+                alert('Vul de tijd in!');
+                return;
+            }
+            requestData.time = time;
+            break;
+            
+        case 'weekly':
+            const weeklyTime = document.getElementById('scheduled-time').value;
+            const dayOfWeek = document.getElementById('scheduled-day-of-week').value;
+            if (!weeklyTime) {
+                alert('Vul de tijd in!');
+                return;
+            }
+            requestData.time = weeklyTime;
+            requestData.dayOfWeek = parseInt(dayOfWeek);
+            break;
+            
+        case 'monthly':
+            const monthlyTime = document.getElementById('scheduled-time').value;
+            const dayOfMonth = document.getElementById('scheduled-day-of-month').value;
+            if (!monthlyTime) {
+                alert('Vul de tijd in!');
+                return;
+            }
+            if (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31) {
+                alert('Vul een geldige dag van de maand in (1-31)!');
+                return;
+            }
+            requestData.time = monthlyTime;
+            requestData.dayOfMonth = parseInt(dayOfMonth);
+            break;
+    }
+    
     try {
         const response = await fetch('/api/scheduled-tests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ testFile, intervalMinutes: parseInt(interval), enabled: true })
+            body: JSON.stringify(requestData)
         });
         
         const result = await response.json();
@@ -639,11 +730,58 @@ async function addScheduledTest() {
         if (result.success) {
             alert(`Test gepland!`);
             loadScheduledTestsUI();
+            
+            // Reset form
+            document.getElementById('scheduled-test-select').value = '';
+            document.getElementById('schedule-type').value = 'interval';
+            document.getElementById('scheduled-interval').value = '60';
+            document.getElementById('scheduled-time').value = '';
+            document.getElementById('scheduled-day-of-week').value = '0';
+            document.getElementById('scheduled-day-of-month').value = '1';
+            
+            // Update UI based on schedule type
+            updateScheduleFormUI();
         } else {
             alert('Fout: ' + result.error);
         }
     } catch (error) {
         alert('Fout: ' + error.message);
+    }
+}
+
+// Update schedule form UI based on selected schedule type
+function updateScheduleFormUI() {
+    const scheduleType = document.getElementById('schedule-type').value;
+    
+    // Hide all optional groups first
+    document.getElementById('interval-group').style.display = 'none';
+    document.getElementById('time-group').style.display = 'none';
+    document.getElementById('day-of-week-group').style.display = 'none';
+    document.getElementById('day-of-month-group').style.display = 'none';
+    
+    // Show relevant groups based on schedule type
+    switch (scheduleType) {
+        case 'interval':
+            document.getElementById('interval-group').style.display = 'block';
+            break;
+            
+        case 'hourly':
+            // No additional fields needed
+            break;
+            
+        case 'daily':
+            document.getElementById('time-group').style.display = 'block';
+            break;
+            
+        case 'weekly':
+            document.getElementById('time-group').style.display = 'block';
+            document.getElementById('day-of-week-group').style.display = 'block';
+            break;
+            
+        case 'monthly':
+            document.getElementById('time-group').style.display = 'block';
+            document.getElementById('day-of-month-group').style.display = 'block';
+            break;
     }
 }
 
@@ -680,12 +818,185 @@ async function deleteScheduledTest(id) {
         const result = await response.json();
         
         if (result.success) {
+            // Remove the card from DOM immediately for better UX
+            const card = document.querySelector(`[data-schedule-id="${id}"]`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(100px)';
+                card.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    // Check if list is now empty
+                    const list = document.getElementById('scheduled-list');
+                    if (list.children.length === 0) {
+                        list.innerHTML = '<div class="card"><p>Geen geplande tests. Voeg er een toe!</p></div>';
+                    }
+                }, 300);
+            } else {
+                loadScheduledTestsUI();
+            }
+        } else {
+            alert('Fout: ' + result.error);
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Bewerk geplande test - open modal
+async function editScheduledTest(id) {
+    try {
+        const response = await fetch('/api/scheduled-tests');
+        const tests = await response.json();
+        const test = tests.find(t => t.id === id);
+        
+        if (!test) {
+            alert('Geplande test niet gevonden');
+            return;
+        }
+        
+        // Use existing modal from HTML
+        const modal = document.getElementById('edit-schedule-modal');
+        if (!modal) {
+            alert('Edit modal niet gevonden in HTML');
+            return;
+        }
+        
+        // Set values
+        document.getElementById('edit-schedule-id').value = test.id;
+        document.getElementById('edit-test-file').value = test.testFile;
+        document.getElementById('edit-schedule-type').value = test.scheduleType || 'interval';
+        document.getElementById('edit-interval').value = test.intervalMinutes || 60;
+        document.getElementById('edit-time').value = test.time || '';
+        document.getElementById('edit-day-of-week').value = test.dayOfWeek !== undefined ? test.dayOfWeek : 1;
+        document.getElementById('edit-day-of-month').value = test.dayOfMonth || 1;
+        
+        // Update UI visibility
+        updateEditFormUI();
+        
+        // Show modal
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+        });
+        
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Update edit form UI based on selected schedule type
+function updateEditFormUI() {
+    const scheduleType = document.getElementById('edit-schedule-type').value;
+    
+    document.getElementById('edit-interval-group').style.display = 'none';
+    document.getElementById('edit-time-group').style.display = 'none';
+    document.getElementById('edit-day-of-week-group').style.display = 'none';
+    document.getElementById('edit-day-of-month-group').style.display = 'none';
+    
+    switch (scheduleType) {
+        case 'interval':
+            document.getElementById('edit-interval-group').style.display = 'block';
+            break;
+        case 'daily':
+            document.getElementById('edit-time-group').style.display = 'block';
+            break;
+        case 'weekly':
+            document.getElementById('edit-time-group').style.display = 'block';
+            document.getElementById('edit-day-of-week-group').style.display = 'block';
+            break;
+        case 'monthly':
+            document.getElementById('edit-time-group').style.display = 'block';
+            document.getElementById('edit-day-of-month-group').style.display = 'block';
+            break;
+    }
+}
+
+// Save schedule edit
+async function saveScheduleEdit() {
+    const id = document.getElementById('edit-schedule-id').value;
+    const scheduleType = document.getElementById('edit-schedule-type').value;
+    
+    let updateData = { scheduleType };
+    
+    switch (scheduleType) {
+        case 'interval':
+            const interval = document.getElementById('edit-interval').value;
+            if (!interval) {
+                alert('Vul het interval in!');
+                return;
+            }
+            updateData.intervalMinutes = parseInt(interval);
+            break;
+            
+        case 'hourly':
+            // No additional parameters needed
+            break;
+            
+        case 'daily':
+            const dailyTime = document.getElementById('edit-time').value;
+            if (!dailyTime) {
+                alert('Vul de tijd in!');
+                return;
+            }
+            updateData.time = dailyTime;
+            break;
+            
+        case 'weekly':
+            const weeklyTime = document.getElementById('edit-time').value;
+            const dayOfWeek = document.getElementById('edit-day-of-week').value;
+            if (!weeklyTime) {
+                alert('Vul de tijd in!');
+                return;
+            }
+            updateData.time = weeklyTime;
+            updateData.dayOfWeek = parseInt(dayOfWeek);
+            break;
+            
+        case 'monthly':
+            const monthlyTime = document.getElementById('edit-time').value;
+            const dayOfMonth = document.getElementById('edit-day-of-month').value;
+            if (!monthlyTime) {
+                alert('Vul de tijd in!');
+                return;
+            }
+            if (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31) {
+                alert('Vul een geldige dag van de maand in (1-31)!');
+                return;
+            }
+            updateData.time = monthlyTime;
+            updateData.dayOfMonth = parseInt(dayOfMonth);
+            break;
+    }
+    
+    try {
+        const response = await fetch(`/api/scheduled-tests/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeEditModal();
             loadScheduledTestsUI();
         } else {
             alert('Fout: ' + result.error);
         }
     } catch (error) {
         alert('Fout: ' + error.message);
+    }
+}
+
+// Close edit modal
+function closeEditModal() {
+    const modal = document.getElementById('edit-schedule-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
     }
 }
 
@@ -2569,3 +2880,571 @@ loadTests();
 loadTestsForSchedule();
 loadAiConfig();
 loadSiteAgents();
+
+// ============================================
+// AUTOMATISCH VERVERSEN (VERVER) FUNCTIE
+// ============================================
+
+let autoRefreshEnabled = false;
+let autoRefreshInterval = null;
+
+// Toggle automatisch verversen
+function toggleAutoRefresh() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    
+    const toggleBtn = document.getElementById('auto-refresh-btn');
+    const statusIndicator = document.getElementById('auto-refresh-status');
+    
+    if (autoRefreshEnabled) {
+        // Start automatisch verversen (elke 10 seconden)
+        autoRefreshInterval = setInterval(() => {
+            const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+            
+            switch(activeTab) {
+                case 'tests':
+                    loadTests();
+                    break;
+                case 'videos':
+                    loadVideos();
+                    break;
+                case 'screenshots':
+                    loadScreenshots();
+                    break;
+                case 'scheduled':
+                    loadScheduledTestsUI();
+                    break;
+                case 'ai-agent':
+                    // Voor AI agent tab verversen we de relevante data
+                    if (currentSiteAgent) {
+                        loadSiteAgents();
+                    }
+                    break;
+            }
+        }, 10000); // Elke 10 seconden
+        
+        // Update UI
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            toggleBtn.title = 'Stop automatisch verversen';
+        }
+        
+        if (statusIndicator) {
+            statusIndicator.innerHTML = '<i class="fa-solid fa-circle-check" style="color: var(--success);"></i> Auto-refresh actief';
+        }
+        
+        console.log('Automatisch verversen gestart');
+    } else {
+        // Stop automatisch verversen
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+        
+        // Update UI
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            toggleBtn.title = 'Start automatisch verversen';
+        }
+        
+        if (statusIndicator) {
+            statusIndicator.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color: var(--danger);"></i> Auto-refresh inactief';
+        }
+        
+        console.log('Automatisch verversen gestopt');
+    }
+}
+
+// Voeg event listener toe voor de ververs knop
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('auto-refresh-btn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleAutoRefresh);
+    }
+});
+
+// ============================================
+// INTERACTIEVE TEST FUNCTIES
+// ============================================
+
+let currentInteractiveSession = null;
+
+// Start een interactieve test sessie
+async function startInteractiveTest(testFile) {
+    try {
+        const response = await fetch('/api/start-interactive-test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                testFile, 
+                headed: true,
+                socketId: socket.id
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            currentInteractiveSession = result.sessionId;
+            showInteractiveTestPanel(testFile, result.sessionId);
+        } else {
+            alert('Fout bij starten interactieve test: ' + result.error);
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Toon het interactieve test paneel
+function showInteractiveTestPanel(testFile, sessionId) {
+    // Verberg andere panels en toon het interactieve test paneel
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Maak een nieuw paneel aan voor de interactieve test
+    let interactivePanel = document.getElementById('interactive-test-panel');
+    if (!interactivePanel) {
+        interactivePanel = document.createElement('section');
+        interactivePanel.id = 'interactive-test-panel';
+        interactivePanel.className = 'tab-content active';
+        interactivePanel.innerHTML = `
+            <div class="form-card">
+                <h2><i class="fa-solid fa-comments"></i> Interactieve Test: ${testFile}</h2>
+                <div class="interactive-test-container">
+                    <div class="test-output-panel">
+                        <h3>Test Output</h3>
+                        <pre id="interactive-test-output" class="test-output"></pre>
+                    </div>
+                    <div class="instruction-panel">
+                        <h3>Instructies</h3>
+                        <div class="instruction-input-area">
+                            <textarea id="instruction-input" placeholder="Typ hier je instructies... Bijv. 'Klik op de login knop' of 'Vul gebruikersnaam in met testuser'"></textarea>
+                            <button id="send-instruction-btn" class="btn btn-primary" title="Verstuur Instructie"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                        <div class="instruction-history" id="instruction-history">
+                            <!-- Instructie geschiedenis wordt hier getoond -->
+                        </div>
+                    </div>
+                </div>
+                <button id="close-interactive-test-btn" class="btn btn-secondary" title="Sluiten"><i class="fa-solid fa-times"></i> Sluiten</button>
+            </div>
+        `;
+        document.querySelector('main.container').appendChild(interactivePanel);
+        
+        // Voeg event listeners toe
+        document.getElementById('send-instruction-btn').addEventListener('click', sendInstruction);
+        document.getElementById('close-interactive-test-btn').addEventListener('click', closeInteractiveTest);
+        
+        // Enter-toets in textarea stuurt instructie
+        document.getElementById('instruction-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendInstruction();
+            }
+        });
+    } else {
+        interactivePanel.classList.add('active');
+        document.getElementById('interactive-test-output').textContent = '';
+        document.getElementById('instruction-history').innerHTML = '';
+    }
+    
+    // Scroll naar het paneel
+    interactivePanel.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Stuur een instructie naar de test
+async function sendInstruction() {
+    const input = document.getElementById('instruction-input');
+    const instruction = input.value.trim();
+    
+    if (!instruction || !currentInteractiveSession) return;
+    
+    // Voeg instructie toe aan geschiedenis
+    const history = document.getElementById('instruction-history');
+    const instructionElement = document.createElement('div');
+    instructionElement.className = 'instruction-item';
+    instructionElement.innerHTML = `
+        <div class="instruction-text">${instruction}</div>
+        <div class="instruction-time">${new Date().toLocaleTimeString()}</div>
+    `;
+    history.appendChild(instructionElement);
+    history.scrollTop = history.scrollHeight;
+    
+    // Clear input
+    input.value = '';
+    
+    try {
+        const response = await fetch('/api/send-instruction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                sessionId: currentInteractiveSession,
+                instruction: instruction
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            alert('Fout bij versturen instructie: ' + result.error);
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Sluit de interactieve test
+function closeInteractiveTest() {
+    const panel = document.getElementById('interactive-test-panel');
+    if (panel) {
+        panel.classList.remove('active');
+    }
+    
+    // Toon de tests tab weer
+    switchTab('tests');
+    
+    // Reset de huidige sessie
+    currentInteractiveSession = null;
+}
+
+// Socket.IO listener voor interactieve test output
+socket.on('interactive-test-output', (data) => {
+    const outputElement = document.getElementById('interactive-test-output');
+    if (outputElement && data.sessionId === currentInteractiveSession) {
+        outputElement.textContent += data.output;
+        outputElement.scrollTop = outputElement.scrollHeight;
+    }
+});
+
+// Socket.IO listener voor instructieontvangst
+socket.on('instruction-received', (data) => {
+    if (data.sessionId === currentInteractiveSession) {
+        // Toon een notificatie dat de instructie is ontvangen
+        const outputElement = document.getElementById('interactive-test-output');
+        if (outputElement) {
+            outputElement.textContent += `\n[INSTRUCTIE ONTVANGEN]: ${data.instruction}\n`;
+            outputElement.scrollTop = outputElement.scrollHeight;
+        }
+    }
+});
+
+// Socket.IO listener voor test voltooiing
+socket.on('interactive-test-completed', (data) => {
+    if (data.sessionId === currentInteractiveSession) {
+        const outputElement = document.getElementById('interactive-test-output');
+        if (outputElement) {
+            outputElement.textContent += `\n[Test voltooid met exit code: ${data.code}]\n`;
+            outputElement.scrollTop = outputElement.scrollHeight;
+        }
+        
+        // Reset de huidige sessie
+        currentInteractiveSession = null;
+    }
+});
+
+// ============================================
+// INTERACTIEVE TEST FUNCTIES VOOR AI AGENT
+// ============================================
+
+let aiAgentInteractiveSession = null;
+
+// Laad beschikbare tests in de dropdown voor interactieve test
+async function loadTestsForInteractiveTest() {
+    const select = document.getElementById('interactive-test-select');
+    if (!select) return;
+    
+    try {
+        const response = await fetch('/api/tests');
+        const tests = await response.json();
+        
+        select.innerHTML = '<option value="">-- Kies een test --</option>';
+        tests.forEach(test => {
+            const option = document.createElement('option');
+            option.value = test.file;
+            option.textContent = test.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Fout bij laden tests voor interactieve test:', error);
+    }
+}
+
+// Start een interactieve test vanuit de AI Agent
+async function startInteractiveTestFromAgent() {
+    const testFile = document.getElementById('interactive-test-select').value;
+    const outputElement = document.getElementById('interactive-test-output');
+    
+    if (!testFile) {
+        alert('Selecteer eerst een test!');
+        return;
+    }
+    
+    if (outputElement) {
+        outputElement.textContent = `Starten van interactieve test: ${testFile}...\n`;
+    }
+    
+    try {
+        const response = await fetch('/api/start-interactive-test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                testFile, 
+                headed: true,
+                socketId: socket.id
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            aiAgentInteractiveSession = result.sessionId;
+            if (outputElement) {
+                outputElement.textContent += `Interactieve test sessie gestart (ID: ${result.sessionId})\n`;
+            }
+        } else {
+            if (outputElement) {
+                outputElement.textContent += `Fout bij starten interactieve test: ${result.error}\n`;
+            }
+        }
+    } catch (error) {
+        if (outputElement) {
+            outputElement.textContent += `Fout: ${error.message}\n`;
+        }
+    }
+}
+
+// Stuur een instructie naar de lopende interactieve test
+async function sendInstructionFromAgent() {
+    const instructionInput = document.getElementById('interactive-instruction-input');
+    const instruction = instructionInput.value.trim();
+    const outputElement = document.getElementById('interactive-test-output');
+    
+    if (!instruction || !aiAgentInteractiveSession) {
+        if (!aiAgentInteractiveSession) {
+            alert('Er is geen actieve interactieve test sessie!');
+        }
+        return;
+    }
+    
+    if (outputElement) {
+        outputElement.textContent += `\n[INSTRUCTIE VERZONDEN]: ${instruction}\n`;
+        outputElement.scrollTop = outputElement.scrollHeight;
+    }
+    
+    try {
+        const response = await fetch('/api/send-instruction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                sessionId: aiAgentInteractiveSession,
+                instruction: instruction
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            if (outputElement) {
+                outputElement.textContent += `Fout bij versturen instructie: ${result.error}\n`;
+            }
+        }
+        
+        // Clear input
+        instructionInput.value = '';
+    } catch (error) {
+        if (outputElement) {
+            outputElement.textContent += `Fout: ${error.message}\n`;
+        }
+    }
+}
+
+// Voeg event listeners toe voor de nieuwe knoppen
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.getElementById('start-interactive-test-btn');
+    const sendBtn = document.getElementById('send-instruction-btn');
+    
+    if (startBtn) {
+        startBtn.addEventListener('click', startInteractiveTestFromAgent);
+    }
+    
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendInstructionFromAgent);
+    }
+    
+    // Laad tests in de dropdown wanneer de AI Agent tab wordt geopend
+    const aiAgentTabBtn = document.querySelector('[data-tab="ai-agent"]');
+    if (aiAgentTabBtn) {
+        aiAgentTabBtn.addEventListener('click', loadTestsForInteractiveTest);
+    }
+    
+    // Event listener voor schedule type dropdown
+    const scheduleTypeSelect = document.getElementById('schedule-type');
+    if (scheduleTypeSelect) {
+        scheduleTypeSelect.addEventListener('change', updateScheduleFormUI);
+    }
+    
+    // Initialize schedule form UI
+    updateScheduleFormUI();
+    
+    // Event listeners voor interactieve codegeneratie
+    const startCodegenBtn = document.getElementById('start-codegen-btn');
+    const sendCodegenInstructionBtn = document.getElementById('send-codegen-instruction-btn');
+    const editCodeBtn = document.getElementById('edit-code-btn');
+    const saveCodeBtn = document.getElementById('save-code-btn');
+    
+    if (startCodegenBtn) {
+        startCodegenBtn.addEventListener('click', startInteractiveCodegen);
+    }
+    
+    if (sendCodegenInstructionBtn) {
+        sendCodegenInstructionBtn.addEventListener('click', sendCodegenInstruction);
+    }
+    
+    if (editCodeBtn) {
+        editCodeBtn.addEventListener('click', enableCodeEditing);
+    }
+    
+    if (saveCodeBtn) {
+        saveCodeBtn.addEventListener('click', saveGeneratedCode);
+    }
+});
+
+// ============================================
+// INTERACTIEVE CODEGENERATIE FUNCTIES
+// ============================================
+
+let currentCodegenSession = null;
+
+// Start interactieve codegeneratie
+async function startInteractiveCodegen() {
+    const description = document.getElementById('codegen-description').value;
+    const codeElement = document.getElementById('generated-code');
+    
+    if (!description) {
+        alert('Voer eerst een testbeschrijving in!');
+        return;
+    }
+    
+    if (codeElement) {
+        codeElement.textContent = 'Codegeneratie gestart...\n';
+    }
+    
+    try {
+        // In een volledige implementatie zou dit een API-aanroep zijn naar de AI
+        // Voor nu simuleren we de codegeneratie
+        const simulatedCode = `const { test, expect } = require('@playwright/test');
+
+test('${description.substring(0, 20)}', async ({ page }) => {
+  // Navigeer naar de site
+  await page.goto('https://example.com');
+  
+  // Wacht tot de pagina is geladen
+  await page.waitForLoadState('networkidle');
+  
+  // Voer acties uit op basis van de beschrijving
+  // TODO: Implementeer specifieke acties op basis van de beschrijving
+  
+  // Controleer resultaten
+  await expect(page).toHaveTitle(/Example/);
+});`;
+        
+        if (codeElement) {
+            codeElement.textContent = simulatedCode;
+        }
+        
+        currentCodegenSession = {
+            description: description,
+            code: simulatedCode
+        };
+        
+        // Stuur een bericht naar de chat dat de codegeneratie is voltooid
+        addChatMessage('bot', 'Ik heb een basis test gegenereerd op basis van je beschrijving. Je kunt de code nu bewerken of instructies geven om specifieke acties toe te voegen.');
+    } catch (error) {
+        if (codeElement) {
+            codeElement.textContent = `Fout bij codegeneratie: ${error.message}\n`;
+        }
+    }
+}
+
+// Stuur instructies voor codegeneratie
+async function sendCodegenInstruction() {
+    const instruction = document.getElementById('codegen-instructions').value;
+    const codeElement = document.getElementById('generated-code');
+    
+    if (!instruction) {
+        alert('Voer eerst een instructie in!');
+        return;
+    }
+    
+    if (!currentCodegenSession) {
+        alert('Er is geen actieve codegeneratie sessie!');
+        return;
+    }
+    
+    try {
+        // In een volledige implementatie zou dit een API-aanroep zijn naar de AI
+        // Voor nu simuleren we het bijwerken van de code op basis van de instructie
+        const updatedCode = currentCodegenSession.code + `\n\n  // Instructie: ${instruction}\n  // TODO: Implementeer deze instructie`;
+        
+        if (codeElement) {
+            codeElement.textContent = updatedCode;
+        }
+        
+        currentCodegenSession.code = updatedCode;
+        
+        // Stuur een bericht naar de chat dat de instructie is verwerkt
+        addChatMessage('bot', `Ik heb de instructie "${instruction}" verwerkt en de code bijgewerkt. Je kunt de code verder bewerken als dat nodig is.`);
+        
+        // Clear instruction input
+        document.getElementById('codegen-instructions').value = '';
+    } catch (error) {
+        if (codeElement) {
+            codeElement.textContent = `Fout bij verwerken instructie: ${error.message}\n`;
+        }
+    }
+}
+
+// Schakel code bewerken in
+function enableCodeEditing() {
+    const codeElement = document.getElementById('generated-code');
+    
+    if (codeElement) {
+        codeElement.readOnly = false;
+        codeElement.style.backgroundColor = '#ffffff';
+        codeElement.style.color = '#000000';
+        addChatMessage('bot', 'Je kunt nu de code direct bewerken in het tekstveld. Klik op "Code Opslaan" wanneer je klaar bent.');
+    }
+}
+
+// Sla gegenereerde code op
+async function saveGeneratedCode() {
+    const codeElement = document.getElementById('generated-code');
+    
+    if (!codeElement) {
+        alert('Geen code om op te slaan!');
+        return;
+    }
+    
+    const code = codeElement.value;
+    
+    if (!code) {
+        alert('Er is geen code om op te slaan!');
+        return;
+    }
+    
+    try {
+        // In een volledige implementatie zou dit een API-aanroep zijn om de code op te slaan
+        // Voor nu simuleren we het opslaan
+        const fileName = 'interactieve-test.spec.js';
+        
+        // Stuur een bericht naar de chat dat de code is opgeslagen
+        addChatMessage('bot', `De code is opgeslagen als ${fileName}. Je kunt de test nu uitvoeren of verder bewerken.`);
+        
+        // Zet de code weer op read-only
+        codeElement.readOnly = true;
+        codeElement.style.backgroundColor = '#0f172a';
+        codeElement.style.color = '#e2e8f0';
+    } catch (error) {
+        alert(`Fout bij opslaan code: ${error.message}`);
+    }
+}

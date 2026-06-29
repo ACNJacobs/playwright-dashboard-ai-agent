@@ -2151,6 +2151,120 @@ main {
     border-radius: 10px;
 }
 
+/* ============================================
+   MODAL STYLES
+   ============================================ */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.active {
+    display: flex !important;
+    opacity: 1;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+    position: relative;
+}
+
+.modal.active .modal-content {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-body);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* Form control styles */
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-top: 6px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.1);
+}
+
+.form-control:disabled {
+    background: var(--border-light);
+    cursor: not-allowed;
+}
+
+/* Card animation for delete */
+.card {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Next run highlight */
+.card-meta strong {
+    color: var(--accent);
+}
+
+/* Status badge improvements */
+.status-badge.status-success {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.status-badge.status-warning {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
 .mcp-log-args {
     background: #0f172a;
     padding: 8px 10px;
@@ -2391,4 +2505,98 @@ main {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+/* ============================================
+   AUTOMATISCH VERVERSEN (VERVER) STIJLEN
+   ============================================ */
+
+/* Ververs status indicator */
+.auto-refresh-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--border-light);
+}
+
+/* ============================================
+   INTERACTIEVE TEST STIJLEN
+   ============================================ */
+
+.interactive-test-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    background: var(--bg-card);
+    margin-bottom: 12px;
+}
+
+.interactive-instruction-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    resize: vertical;
+    min-height: 80px;
+    margin-bottom: 12px;
+}
+
+.interactive-test-output {
+    margin-top: 12px;
+    padding: 15px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: var(--radius);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    overflow-y: auto;
+    min-height: 100px;
+    max-height: 300px;
+    white-space: pre-wrap;
+}
+
+.codegen-description {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    resize: vertical;
+    min-height: 60px;
+    margin-bottom: 12px;
+}
+
+.codegen-instructions {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    resize: vertical;
+    min-height: 60px;
+    margin-bottom: 12px;
+}
+
+.generated-code {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.875rem;
+    resize: vertical;
+    min-height: 200px;
+    background: #0f172a;
+    color: #e2e8f0;
 }

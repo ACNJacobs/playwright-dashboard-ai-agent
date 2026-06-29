@@ -12,7 +12,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = 3002;
+const PORT = 8080;
+
+// Object om interactieve test sessies bij te houden
+const interactiveSessions = {};
 
 // === AI AGENT CONFIGURATION ===
 const CONFIG_DIR = path.join(__dirname, 'config');
@@ -348,6 +351,82 @@ async function crawlSite(baseUrl, credentials = null) {
   return siteKnowledge;
 }
 
+// Helper function to calculate next run time
+function calculateNextRun(test) {
+  const now = new Date();
+  let nextRun = new Date(now);
+  
+  switch (test.scheduleType) {
+    case 'interval':
+      const lastRun = test.lastRun ? new Date(test.lastRun) : null;
+      const intervalMs = (test.intervalMinutes || 60) * 60 * 1000;
+      nextRun = lastRun ? new Date(lastRun.getTime() + intervalMs) : now;
+      if (nextRun < now) nextRun = now; // If overdue, run now
+      break;
+      
+    case 'hourly':
+      nextRun.setMinutes(0, 0, 0);
+      nextRun.setHours(nextRun.getHours() + 1);
+      break;
+      
+    case 'daily':
+      if (test.time) {
+        const [hours, minutes] = test.time.split(':').map(Number);
+        nextRun.setHours(hours, minutes, 0, 0);
+        if (nextRun <= now) nextRun.setDate(nextRun.getDate() + 1);
+      }
+      break;
+      
+    case 'weekly':
+      if (test.time && test.dayOfWeek !== undefined) {
+        const [hours, minutes] = test.time.split(':').map(Number);
+        nextRun.setHours(hours, minutes, 0, 0);
+        const daysUntil = (test.dayOfWeek - nextRun.getDay() + 7) % 7;
+        nextRun.setDate(nextRun.getDate() + daysUntil);
+        if (nextRun <= now) nextRun.setDate(nextRun.getDate() + 7);
+      }
+      break;
+      
+    case 'monthly':
+      if (test.time && test.dayOfMonth !== undefined) {
+        const [hours, minutes] = test.time.split(':').map(Number);
+        nextRun.setHours(hours, minutes, 0, 0);
+        nextRun.setDate(test.dayOfMonth);
+        if (nextRun <= now) nextRun.setMonth(nextRun.getMonth() + 1);
+      }
+      break;
+      
+    default:
+      // Legacy interval-based
+      const lastRunLegacy = test.lastRun ? new Date(test.lastRun) : null;
+      const intervalMsLegacy = (test.intervalMinutes || 60) * 60 * 1000;
+      nextRun = lastRunLegacy ? new Date(lastRunLegacy.getTime() + intervalMsLegacy) : now;
+      if (nextRun < now) nextRun = now;
+  }
+  
+  return nextRun.toISOString();
+}
+
+// Helper function to format next run in human readable format
+function formatNextRun(nextRunISO) {
+  const nextRun = new Date(nextRunISO);
+  const now = new Date();
+  const diffMs = nextRun - now;
+  
+  if (diffMs <= 0) return 'Nu';
+  
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffMins < 60) return `Over ${diffMins} min`;
+  if (diffHours < 24) return `Over ${diffHours} uur`;
+  if (diffDays === 1) return 'Morgen om ' + nextRun.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays < 7) return `${nextRun.toLocaleDateString('nl-NL', { weekday: 'long' })} om ${nextRun.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+  
+  return nextRun.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 // Scheduled tests storage
 const SCHEDULED_TESTS_FILE = path.join(__dirname, 'scheduled-tests.json');
 let scheduledTests = [];
@@ -357,6 +436,10 @@ function loadScheduledTests() {
   if (fs.existsSync(SCHEDULED_TESTS_FILE)) {
     try {
       scheduledTests = JSON.parse(fs.readFileSync(SCHEDULED_TESTS_FILE, 'utf8'));
+      // Migrate old data: add runHistory if missing
+      scheduledTests.forEach(test => {
+        if (!test.runHistory) test.runHistory = [];
+      });
     } catch (e) {
       scheduledTests = [];
     }
@@ -380,26 +463,43 @@ function runScheduledTest(scheduledTest) {
   const testPathForward = 'tests/' + scheduledTest.testFile;
   const command = `npx playwright test "${testPathForward}"`;
   
+  const startTime = Date.now();
+  
   exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
     const success = !error || error.code === 0;
     const timestamp = new Date().toISOString();
+    const duration = Date.now() - startTime;
     
     // Update last run info
     const testIndex = scheduledTests.findIndex(t => t.id === scheduledTest.id);
     if (testIndex !== -1) {
       scheduledTests[testIndex].lastRun = timestamp;
       scheduledTests[testIndex].lastResult = success ? 'success' : 'failed';
+      
+      // Add to run history (keep last 20 runs)
+      if (!scheduledTests[testIndex].runHistory) scheduledTests[testIndex].runHistory = [];
+      scheduledTests[testIndex].runHistory.unshift({
+        timestamp,
+        result: success ? 'success' : 'failed',
+        duration,
+        output: (stdout + stderr).substring(0, 5000) // Limit output size
+      });
+      if (scheduledTests[testIndex].runHistory.length > 20) {
+        scheduledTests[testIndex].runHistory = scheduledTests[testIndex].runHistory.slice(0, 20);
+      }
+      
       saveScheduledTests();
     }
     
-    console.log(`[${timestamp}] Scheduled test ${scheduledTest.testFile} completed: ${success ? 'success' : 'failed'}`);
+    console.log(`[${timestamp}] Scheduled test ${scheduledTest.testFile} completed: ${success ? 'success' : 'failed'} (${duration}ms)`);
     
     // Notify clients
     io.emit('scheduled-test-completed', { 
       id: scheduledTest.id, 
       testFile: scheduledTest.testFile, 
       success,
-      timestamp 
+      timestamp,
+      duration
     });
   });
 }
@@ -411,15 +511,98 @@ setInterval(() => {
   scheduledTests.forEach(test => {
     if (!test.enabled) return;
     
-    const lastRun = test.lastRun ? new Date(test.lastRun) : null;
-    const intervalMs = test.intervalMinutes * 60 * 1000;
+    // Check if it's time to run based on schedule type
+    let shouldRun = false;
     
-    // Check if it's time to run
-    if (!lastRun || (now - lastRun) >= intervalMs) {
+    switch (test.scheduleType) {
+      case 'interval':
+        // Original interval-based scheduling
+        const lastRun = test.lastRun ? new Date(test.lastRun) : null;
+        const intervalMs = (test.intervalMinutes || 60) * 60 * 1000;
+        shouldRun = !lastRun || (now - lastRun) >= intervalMs;
+        break;
+        
+      case 'hourly':
+        // Run every hour at XX:00
+        if (now.getMinutes() === 0) {
+          const lastRunHourly = test.lastRun ? new Date(test.lastRun) : null;
+          if (!lastRunHourly || 
+              now.getHours() !== lastRunHourly.getHours() || 
+              now.getDate() !== lastRunHourly.getDate() ||
+              now.getMonth() !== lastRunHourly.getMonth() ||
+              now.getFullYear() !== lastRunHourly.getFullYear()) {
+            shouldRun = true;
+          }
+        }
+        break;
+        
+      case 'daily':
+        // Run daily at specified time
+        if (test.time) {
+          const [hours, minutes] = test.time.split(':').map(Number);
+          if (now.getHours() === hours && now.getMinutes() === minutes) {
+            const lastRunDaily = test.lastRun ? new Date(test.lastRun) : null;
+            if (!lastRunDaily || 
+                now.getDate() !== lastRunDaily.getDate() ||
+                now.getMonth() !== lastRunDaily.getMonth() ||
+                now.getFullYear() !== lastRunDaily.getFullYear()) {
+              shouldRun = true;
+            }
+          }
+        }
+        break;
+        
+      case 'weekly':
+        // Run weekly on specified day and time
+        if (test.time && test.dayOfWeek !== undefined) {
+          const [hours, minutes] = test.time.split(':').map(Number);
+          if (now.getDay() === test.dayOfWeek && now.getHours() === hours && now.getMinutes() === minutes) {
+            const lastRunWeekly = test.lastRun ? new Date(test.lastRun) : null;
+            if (!lastRunWeekly || 
+                getWeekNumber(now) !== getWeekNumber(new Date(lastRunWeekly)) ||
+                now.getFullYear() !== lastRunWeekly.getFullYear()) {
+              shouldRun = true;
+            }
+          }
+        }
+        break;
+        
+      case 'monthly':
+        // Run monthly on specified day and time
+        if (test.time && test.dayOfMonth !== undefined) {
+          const [hours, minutes] = test.time.split(':').map(Number);
+          if (now.getDate() === test.dayOfMonth && now.getHours() === hours && now.getMinutes() === minutes) {
+            const lastRunMonthly = test.lastRun ? new Date(test.lastRun) : null;
+            if (!lastRunMonthly || 
+                now.getMonth() !== lastRunMonthly.getMonth() ||
+                now.getFullYear() !== lastRunMonthly.getFullYear()) {
+              shouldRun = true;
+            }
+          }
+        }
+        break;
+        
+      default:
+        // Legacy interval-based (no scheduleType)
+        const lastRunLegacy = test.lastRun ? new Date(test.lastRun) : null;
+        const intervalMsLegacy = (test.intervalMinutes || 60) * 60 * 1000;
+        shouldRun = !lastRunLegacy || (now - lastRunLegacy) >= intervalMsLegacy;
+    }
+    
+    if (shouldRun) {
       runScheduledTest(test);
     }
   });
 }, 60000); // Check every minute
+
+// Helper function to get week number
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return weekNo;
+}
 
 // Load scheduled tests on startup
 loadScheduledTests();
@@ -529,6 +712,76 @@ app.post('/api/run-test', (req, res) => {
   });
 });
 
+// Start een interactieve test sessie
+app.post('/api/start-interactive-test', (req, res) => {
+  const { testFile, headed } = req.body;
+  if (!testFile) {
+    return res.status(400).json({ error: 'Geen testbestand opgegeven' });
+  }
+  
+  const testPath = path.join('tests', testFile);
+  if (!fs.existsSync(testPath)) {
+    return res.status(404).json({ error: 'Testbestand niet gevonden' });
+  }
+  
+  // Gebruik altijd forward slashes voor Playwright (cross-platform)
+  const testPathForward = 'tests/' + testFile;
+  const command = `npx playwright test "${testPathForward}" ${headed ? '--headed --project=chromium' : ''} --reporter=list`;
+  
+  // Start de test in een child process
+  const child = exec(command, { cwd: __dirname });
+  
+  // Sla de child process op zodat we er later instructies naar kunnen sturen
+  const sessionId = Date.now().toString();
+  interactiveSessions[sessionId] = {
+    process: child,
+    testFile: testFile,
+    socketId: req.body.socketId
+  };
+  
+  res.json({
+    success: true,
+    sessionId: sessionId,
+    message: 'Interactieve test sessie gestart'
+  });
+  
+  // Stuur output naar de client via Socket.IO
+  child.stdout.on('data', (data) => {
+    io.to(req.body.socketId).emit('interactive-test-output', { sessionId, output: data });
+  });
+  
+  child.stderr.on('data', (data) => {
+    io.to(req.body.socketId).emit('interactive-test-output', { sessionId, output: data, isError: true });
+  });
+  
+  child.on('close', (code) => {
+    io.to(req.body.socketId).emit('interactive-test-completed', { sessionId, code });
+    delete interactiveSessions[sessionId];
+  });
+});
+
+// Stuur een instructie naar een lopende interactieve test
+app.post('/api/send-instruction', (req, res) => {
+  const { sessionId, instruction } = req.body;
+  
+  if (!sessionId || !interactiveSessions[sessionId]) {
+    return res.status(404).json({ error: 'Sessie niet gevonden' });
+  }
+  
+  if (!instruction) {
+    return res.status(400).json({ error: 'Geen instructie opgegeven' });
+  }
+  
+  // Voor nu sturen we de instructie naar de client via Socket.IO
+  // In een volledige implementatie zouden we hier de instructie naar de test sturen
+  io.to(interactiveSessions[sessionId].socketId).emit('instruction-received', { sessionId, instruction });
+  
+  res.json({
+    success: true,
+    message: 'Instructie verzonden'
+  });
+});
+
 // Voer alle tests uit
 app.post('/api/run-all-tests', (req, res) => {
   const command = 'npx playwright test';
@@ -620,15 +873,21 @@ app.delete('/api/delete-test/:name', (req, res) => {
 
 // Get all scheduled tests
 app.get('/api/scheduled-tests', (req, res) => {
-  res.json(scheduledTests);
+  // Add computed nextRun field to each test
+  const testsWithNextRun = scheduledTests.map(test => ({
+    ...test,
+    nextRun: calculateNextRun(test),
+    nextRunFormatted: formatNextRun(calculateNextRun(test))
+  }));
+  res.json(testsWithNextRun);
 });
 
 // Add a scheduled test
 app.post('/api/scheduled-tests', (req, res) => {
-  const { testFile, intervalMinutes, enabled } = req.body;
+  const { testFile, scheduleType, intervalMinutes, enabled, time, dayOfWeek, dayOfMonth } = req.body;
   
-  if (!testFile || !intervalMinutes) {
-    return res.status(400).json({ error: 'testFile en intervalMinutes zijn verplicht' });
+  if (!testFile) {
+    return res.status(400).json({ error: 'testFile is verplicht' });
   }
   
   const testPath = path.join('tests', testFile);
@@ -636,10 +895,41 @@ app.post('/api/scheduled-tests', (req, res) => {
     return res.status(404).json({ error: 'Testbestand niet gevonden' });
   }
   
+  // Validate schedule type and parameters
+  if (!scheduleType) {
+    return res.status(400).json({ error: 'scheduleType is verplicht' });
+  }
+  
+  const validScheduleTypes = ['interval', 'daily', 'weekly', 'monthly', 'hourly'];
+  if (!validScheduleTypes.includes(scheduleType)) {
+    return res.status(400).json({ error: `Ongeldig scheduleType. Geldige waarden: ${validScheduleTypes.join(', ')}` });
+  }
+  
+  // Validate parameters based on schedule type
+  if (scheduleType === 'interval' && (!intervalMinutes || intervalMinutes < 1)) {
+    return res.status(400).json({ error: 'intervalMinutes is verplicht en moet minimaal 1 zijn voor interval scheduling' });
+  }
+  
+  if (scheduleType === 'daily' && !time) {
+    return res.status(400).json({ error: 'time is verplicht voor daily scheduling (format: HH:MM)' });
+  }
+  
+  if (scheduleType === 'weekly' && (!time || dayOfWeek === undefined)) {
+    return res.status(400).json({ error: 'time en dayOfWeek zijn verplicht voor weekly scheduling (time format: HH:MM, dayOfWeek: 0-6 waar 0=zondag)' });
+  }
+  
+  if (scheduleType === 'monthly' && (!time || dayOfMonth === undefined)) {
+    return res.status(400).json({ error: 'time en dayOfMonth zijn verplicht voor monthly scheduling (time format: HH:MM, dayOfMonth: 1-31)' });
+  }
+  
   const scheduledTest = {
     id: Date.now().toString(),
     testFile,
-    intervalMinutes: parseInt(intervalMinutes),
+    scheduleType,
+    intervalMinutes: scheduleType === 'interval' ? parseInt(intervalMinutes) : undefined,
+    time: time || undefined, // Format: "HH:MM"
+    dayOfWeek: dayOfWeek !== undefined ? parseInt(dayOfWeek) : undefined, // 0-6 (0 = Sunday)
+    dayOfMonth: dayOfMonth !== undefined ? parseInt(dayOfMonth) : undefined, // 1-31
     enabled: enabled !== false,
     createdAt: new Date().toISOString(),
     lastRun: null,
@@ -649,9 +939,29 @@ app.post('/api/scheduled-tests', (req, res) => {
   scheduledTests.push(scheduledTest);
   saveScheduledTests();
   
+  let message = `Test ${testFile} gepland`;
+  switch (scheduleType) {
+    case 'interval':
+      message += ` om elke ${intervalMinutes} minuten te draaien`;
+      break;
+    case 'hourly':
+      message += ` om elk uur te draaien`;
+      break;
+    case 'daily':
+      message += ` dagelijks om ${time} te draaien`;
+      break;
+    case 'weekly':
+      const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+      message += ` wekelijks op ${days[dayOfWeek]} om ${time} te draaien`;
+      break;
+    case 'monthly':
+      message += ` maandelijks op dag ${dayOfMonth} om ${time} te draaien`;
+      break;
+  }
+  
   res.json({
     success: true,
-    message: `Test ${testFile} gepland om elke ${intervalMinutes} minuten te draaien`,
+    message,
     scheduledTest
   });
 });
@@ -659,15 +969,47 @@ app.post('/api/scheduled-tests', (req, res) => {
 // Update a scheduled test
 app.put('/api/scheduled-tests/:id', (req, res) => {
   const { id } = req.params;
-  const { enabled, intervalMinutes } = req.body;
+  const { enabled, scheduleType, intervalMinutes, time, dayOfWeek, dayOfMonth } = req.body;
   
   const testIndex = scheduledTests.findIndex(t => t.id === id);
   if (testIndex === -1) {
     return res.status(404).json({ error: 'Geplande test niet gevonden' });
   }
   
+  // Update basic fields
   if (enabled !== undefined) scheduledTests[testIndex].enabled = enabled;
-  if (intervalMinutes !== undefined) scheduledTests[testIndex].intervalMinutes = parseInt(intervalMinutes);
+  
+  // Update schedule fields (full edit support)
+  if (scheduleType) {
+    const validScheduleTypes = ['interval', 'daily', 'weekly', 'monthly', 'hourly'];
+    if (!validScheduleTypes.includes(scheduleType)) {
+      return res.status(400).json({ error: `Ongeldig scheduleType. Geldige waarden: ${validScheduleTypes.join(', ')}` });
+    }
+    scheduledTests[testIndex].scheduleType = scheduleType;
+  }
+  
+  if (intervalMinutes !== undefined) {
+    scheduledTests[testIndex].intervalMinutes = parseInt(intervalMinutes);
+  }
+  
+  if (time !== undefined) {
+    scheduledTests[testIndex].time = time;
+  }
+  
+  if (dayOfWeek !== undefined) {
+    scheduledTests[testIndex].dayOfWeek = parseInt(dayOfWeek);
+  }
+  
+  if (dayOfMonth !== undefined) {
+    scheduledTests[testIndex].dayOfMonth = parseInt(dayOfMonth);
+  }
+  
+  // Clean up fields that don't apply to the current schedule type
+  const currentType = scheduledTests[testIndex].scheduleType;
+  if (currentType !== 'interval') scheduledTests[testIndex].intervalMinutes = undefined;
+  if (currentType !== 'daily' && currentType !== 'weekly' && currentType !== 'monthly') scheduledTests[testIndex].time = undefined;
+  if (currentType !== 'weekly') scheduledTests[testIndex].dayOfWeek = undefined;
+  if (currentType !== 'monthly') scheduledTests[testIndex].dayOfMonth = undefined;
   
   saveScheduledTests();
   

@@ -26,6 +26,12 @@
                 <button id="menu-toggle-btn" class="btn btn-secondary btn-sm menu-toggle" title="Menu inklappen/uitklappen">
                     <span class="menu-toggle-icon"><i class="fa-solid fa-bars"></i></span>
                 </button>
+                <button id="auto-refresh-btn" class="btn btn-secondary btn-sm" title="Start automatisch verversen">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+                <span id="auto-refresh-status" class="auto-refresh-status">
+                    <i class="fa-solid fa-circle-xmark" style="color: var(--danger);"></i> Auto-refresh inactief
+                </span>
                 <span class="version">v1.0.0 — Ton Jacobs</span>
             </div>
         </div>
@@ -170,12 +176,48 @@ test('mijn test', async ({ page }) => {
                         <option value="">-- Kies een test --</option>
                     </select>
                 </div>
+                
                 <div class="form-group">
+                    <label for="schedule-type">Scheduling Type:</label>
+                    <select id="schedule-type">
+                        <option value="interval">Interval (minuten)</option>
+                        <option value="hourly">Elk uur</option>
+                        <option value="daily">Dagelijks</option>
+                        <option value="weekly">Wekelijks</option>
+                        <option value="monthly">Maandelijks</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="interval-group">
                     <label for="scheduled-interval">Interval (minuten):</label>
                     <input type="number" id="scheduled-interval" value="60" min="1" max="1440">
                     <small>Bijv. 60 = elk uur, 1440 = elke dag</small>
                 </div>
-                <button id="add-scheduled-btn" class="btn btn-primary" title="Toevoegen"><i class="fa-solid fa-plus"></i></button>
+                
+                <div class="form-group" id="time-group" style="display: none;">
+                    <label for="scheduled-time">Tijd (HH:MM):</label>
+                    <input type="time" id="scheduled-time">
+                </div>
+                
+                <div class="form-group" id="day-of-week-group" style="display: none;">
+                    <label for="scheduled-day-of-week">Dag van de week:</label>
+                    <select id="scheduled-day-of-week">
+                        <option value="0">Zondag</option>
+                        <option value="1">Maandag</option>
+                        <option value="2">Dinsdag</option>
+                        <option value="3">Woensdag</option>
+                        <option value="4">Donderdag</option>
+                        <option value="5">Vrijdag</option>
+                        <option value="6">Zaterdag</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="day-of-month-group" style="display: none;">
+                    <label for="scheduled-day-of-month">Dag van de maand:</label>
+                    <input type="number" id="scheduled-day-of-month" value="1" min="1" max="31">
+                </div>
+                
+                <button id="add-scheduled-btn" class="btn btn-primary" title="Toevoegen"><i class="fa-solid fa-plus"></i> Toevoegen</button>
             </div>
             
             <h3>Geplande Tests</h3>
@@ -183,6 +225,61 @@ test('mijn test', async ({ page }) => {
                 <!-- Geplande tests worden hier geladen -->
             </div>
         </section>
+        
+        <!-- Edit Schedule Modal -->
+        <div id="edit-schedule-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-pen"></i> Schema Bewerken</h3>
+                    <button class="modal-close" onclick="closeEditModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-schedule-id">
+                    <div class="form-group">
+                        <label>Test:</label>
+                        <input type="text" id="edit-test-file" class="form-control" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule Type:</label>
+                        <select id="edit-schedule-type" class="form-control">
+                            <option value="interval">Interval (minuten)</option>
+                            <option value="hourly">Elk uur</option>
+                            <option value="daily">Dagelijks</option>
+                            <option value="weekly">Wekelijks</option>
+                            <option value="monthly">Maandelijks</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="edit-interval-group">
+                        <label>Interval (minuten):</label>
+                        <input type="number" id="edit-interval" class="form-control" value="60" min="1" max="1440">
+                    </div>
+                    <div class="form-group" id="edit-time-group" style="display: none;">
+                        <label>Tijd (HH:MM):</label>
+                        <input type="time" id="edit-time" class="form-control">
+                    </div>
+                    <div class="form-group" id="edit-day-of-week-group" style="display: none;">
+                        <label>Dag van de week:</label>
+                        <select id="edit-day-of-week" class="form-control">
+                            <option value="0">Zondag</option>
+                            <option value="1">Maandag</option>
+                            <option value="2">Dinsdag</option>
+                            <option value="3">Woensdag</option>
+                            <option value="4">Donderdag</option>
+                            <option value="5">Vrijdag</option>
+                            <option value="6">Zaterdag</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="edit-day-of-month-group" style="display: none;">
+                        <label>Dag van de maand:</label>
+                        <input type="number" id="edit-day-of-month" class="form-control" value="1" min="1" max="31">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeEditModal()">Annuleren</button>
+                    <button class="btn btn-primary" onclick="saveScheduleEdit()"><i class="fa-solid fa-floppy-disk"></i> Opslaan</button>
+                </div>
+            </div>
+        </div>
         
         <!-- AI Agent Tab -->
         <section id="ai-agent-tab" class="tab-content">
@@ -249,6 +346,56 @@ test('mijn test', async ({ page }) => {
                                 <!-- Site agents worden hier geladen -->
                             </div>
                             <button id="add-site-agent-btn" class="btn btn-success btn-sm" title="Nieuwe Site"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-section">
+                        <h3 class="collapsible-header" data-target="interactive-tests-wrapper" data-tooltip="Interactieve Tests">
+                            <span class="section-icon"><i class="fa-solid fa-comments"></i></span>
+                            <span class="section-label">Interactieve Tests</span>
+                            <button class="toggle-section-btn" title="Inklappen"></button>
+                        </h3>
+                        <div id="interactive-tests-wrapper" class="collapsible-body">
+                            <div class="form-group">
+                                <label for="interactive-test-select">Selecteer Test:</label>
+                                <select id="interactive-test-select" class="interactive-test-select">
+                                    <option value="">-- Kies een test --</option>
+                                    <!-- Tests worden hier dynamisch geladen -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="interactive-instruction-input">Instructie:</label>
+                                <textarea id="interactive-instruction-input" class="interactive-instruction-input" placeholder="Typ hier je instructies... Bijv. 'Klik op de login knop' of 'Vul gebruikersnaam in met testuser'"></textarea>
+                            </div>
+                            <button id="start-interactive-test-btn" class="btn btn-primary btn-sm" title="Start Interactieve Test"><i class="fa-solid fa-play"></i> Start Test</button>
+                            <button id="send-instruction-btn" class="btn btn-success btn-sm" title="Verstuur Instructie"><i class="fa-solid fa-paper-plane"></i> Verstuur</button>
+                            <div id="interactive-test-output" class="interactive-test-output"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-section">
+                        <h3 class="collapsible-header" data-target="interactive-codegen-wrapper" data-tooltip="Interactieve Codegeneratie">
+                            <span class="section-icon"><i class="fa-solid fa-code"></i></span>
+                            <span class="section-label">Interactieve Codegeneratie</span>
+                            <button class="toggle-section-btn" title="Inklappen"></button>
+                        </h3>
+                        <div id="interactive-codegen-wrapper" class="collapsible-body">
+                            <div class="form-group">
+                                <label for="codegen-description">Testbeschrijving:</label>
+                                <textarea id="codegen-description" class="codegen-description" placeholder="Beschrijf wat de test moet doen... Bijv. 'Bezoek de site, log in, en controleer of het dashboard laadt'"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="codegen-instructions">Instructies:</label>
+                                <textarea id="codegen-instructions" class="codegen-instructions" placeholder="Typ hier je instructies tijdens codegeneratie..."></textarea>
+                            </div>
+                            <button id="start-codegen-btn" class="btn btn-primary btn-sm" title="Start Codegeneratie"><i class="fa-solid fa-play"></i> Start Codegeneratie</button>
+                            <button id="send-codegen-instruction-btn" class="btn btn-success btn-sm" title="Verstuur Instructie"><i class="fa-solid fa-paper-plane"></i> Verstuur Instructie</button>
+                            <div class="form-group" style="margin-top: 15px;">
+                                <label for="generated-code">Gegenereerde Code:</label>
+                                <textarea id="generated-code" class="generated-code" placeholder="De gegenereerde code zal hier verschijnen..." readonly></textarea>
+                            </div>
+                            <button id="edit-code-btn" class="btn btn-warning btn-sm" title="Bewerk Code"><i class="fa-solid fa-pen"></i> Bewerk Code</button>
+                            <button id="save-code-btn" class="btn btn-success btn-sm" title="Code Opslaan"><i class="fa-solid fa-save"></i> Code Opslaan</button>
                         </div>
                     </div>
                 </div>

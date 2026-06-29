@@ -109,7 +109,8 @@ function saveSiteAgents(agents) {
 async function callAiApi(prompt, systemPrompt = '', tools = null) {
   const config = loadApiConfig();
   
-  // Ollama vereist geen API key (lokaal), andere providers wel
+  // API key is verplicht voor cloud providers. Ollama lokaal heeft geen key nodig,
+  // maar cloud-hosted Ollama kan een key vereisen.
   if (!config.apiKey && config.provider !== 'ollama') {
     throw new Error('AI API key niet geconfigureerd. Ga naar AI Agent > Configuratie.');
   }
@@ -185,6 +186,10 @@ async function callAiApi(prompt, systemPrompt = '', tools = null) {
     headers = {
       'Content-Type': 'application/json'
     };
+    // Voeg Authorization toe als er een API key is (voor cloud-hosted Ollama)
+    if (config.apiKey) {
+      headers['Authorization'] = `Bearer ${config.apiKey}`;
+    }
     body = {
       model: config.model || 'llama3.2',
       messages: [
@@ -1154,7 +1159,11 @@ app.post('/api/test-ai-config', async (req, res) => {
     if (config.provider === 'ollama') {
       // Test Ollama verbinding
       const ollamaUrl = `${config.endpoint || 'http://localhost:11434'}/api/tags`;
-      const response = await fetch(ollamaUrl, { method: 'GET' });
+      const headers = {};
+      if (config.apiKey) {
+        headers['Authorization'] = `Bearer ${config.apiKey}`;
+      }
+      const response = await fetch(ollamaUrl, { method: 'GET', headers });
       
       if (!response.ok) {
         throw new Error(`Ollama niet bereikbaar: ${response.status}`);
@@ -1473,7 +1482,11 @@ app.get('/api/ai-models', async (req, res) => {
       
     } else if (config.provider === 'ollama') {
       const baseUrl = config.endpoint || 'http://localhost:11434';
-      const response = await fetch(`${baseUrl}/api/tags`);
+      const headers = {};
+      if (config.apiKey) {
+        headers['Authorization'] = `Bearer ${config.apiKey}`;
+      }
+      const response = await fetch(`${baseUrl}/api/tags`, { headers });
       const data = await response.json();
       models = data.models
         ?.map(m => ({ id: m.name, name: m.name }))

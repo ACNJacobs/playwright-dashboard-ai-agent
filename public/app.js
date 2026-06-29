@@ -1087,10 +1087,10 @@ async function loadAiConfig() {
         const apiKeyGroup = document.getElementById('ai-apikey-group');
         
         endpointGroup.style.display = (provider === 'azure' || provider === 'ollama') ? 'block' : 'none';
-        apiKeyGroup.style.display = (provider === 'ollama') ? 'none' : 'block';
+        apiKeyGroup.style.display = 'block'; // API key altijd tonen, ook voor Ollama cloud
         
         // Probeer modellen op te halen
-        // Voor Ollama: altijd proberen (geen key nodig)
+        // Voor Ollama: altijd proberen (geen key nodig voor lokaal, maar cloud kan key vereisen)
         // Voor andere: alleen als er een key is
         const hasKey = config.apiKey && !config.apiKey.startsWith('••••');
         if (provider === 'ollama' || hasKey) {
@@ -2554,13 +2554,13 @@ document.getElementById('ai-provider').addEventListener('change', (e) => {
     // Toon/verberg endpoint voor azure en ollama
     endpointGroup.style.display = (provider === 'azure' || provider === 'ollama') ? 'block' : 'none';
     
-    // Verberg API key voor Ollama (lokaal, geen key nodig)
-    apiKeyGroup.style.display = (provider === 'ollama') ? 'none' : 'block';
+    // API key is optioneel voor Ollama (lokaal), maar kan nodig zijn voor cloud-hosted Ollama
+    apiKeyGroup.style.display = 'block';
     
     // Update placeholder
     const endpointInput = document.getElementById('ai-endpoint');
     if (provider === 'ollama') {
-        endpointInput.placeholder = 'http://localhost:11434';
+        endpointInput.placeholder = 'http://localhost:11434 of https://jouw-ollama-cloud.com';
     } else if (provider === 'azure') {
         endpointInput.placeholder = 'https://your-resource.openai.azure.com';
     }

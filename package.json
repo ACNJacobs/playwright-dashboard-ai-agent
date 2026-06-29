@@ -1,4 +1,12 @@
 {
+  "name": "playwright-dashboard",
+  "version": "1.0.0",
+  "description": "Playwright Dashboard met AI Agent",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
   "devDependencies": {
     "@playwright/test": "^1.61.0"
   },

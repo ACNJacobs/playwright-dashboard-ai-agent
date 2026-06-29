@@ -2,7 +2,7 @@
 // This file is part of the Playwright Dashboard.
 
 const express = require('express');
-const { exec, execSync } = require('child_process');
+const { exec, execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -2655,6 +2655,354 @@ io.on('connection', (socket) => {
     sessionCodeBuffers.delete(socket.id);
   });
 });
+
+// === WINAPPDRIVER / NATIVE APP TESTING ===
+const APPS_CONFIG_FILE = path.join(CONFIG_DIR, 'apps-config.json');
+const APPS_RESULTS_DIR = path.join(__dirname, 'app-results');
+
+// Ensure app results directory exists
+if (!fs.existsSync(APPS_RESULTS_DIR)) {
+  fs.mkdirSync(APPS_RESULTS_DIR, { recursive: true });
+}
+
+// Load apps configuration
+function loadAppsConfig() {
+  if (fs.existsSync(APPS_CONFIG_FILE)) {
+    try {
+      return JSON.parse(fs.readFileSync(APPS_CONFIG_FILE, 'utf8'));
+    } catch (e) {
+      return { apps: [], scenarios: [] };
+    }
+  }
+  return { apps: [], scenarios: [] };
+}
+
+// Save apps configuration
+function saveAppsConfig(config) {
+  fs.writeFileSync(APPS_CONFIG_FILE, JSON.stringify(config, null, 2));
+}
+
+// WinAppDriver HTTP client
+async function callWinAppDriver(endpoint, method = 'GET', body = null) {
+  const url = `http://127.0.0.1:4723${endpoint}`;
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`WinAppDriver error ${response.status}: ${text}`);
+  }
+  return response.json();
+}
+
+// Start a Windows application via WinAppDriver
+async function startAppSession(appPath, appArguments = '', windowTitle = '') {
+  // Create new session with the app
+  const capabilities = {
+    desiredCapabilities: {
+      app: appPath,
+      appArguments: appArguments,
+      platformName: 'Windows',
+      deviceName: 'WindowsPC'
+    }
+  };
+
+  // If no app path (attach to existing), use root and find window
+  if (!appPath) {
+    capabilities.desiredCapabilities.app = 'Root';
+  }
+
+  const session = await callWinAppDriver('/session', 'POST', capabilities);
+  return session.sessionId;
+}
+
+// Find element by various strategies
+async function findElement(sessionId, strategy, value) {
+  const body = {
+    using: strategy, // name, xpath, class name, accessibility id
+    value: value
+  };
+  const result = await callWinAppDriver(`/session/${sessionId}/element`, 'POST', body);
+  return result.value?.ELEMENT;
+}
+
+// Click element
+async function clickElement(sessionId, elementId) {
+  return callWinAppDriver(`/session/${sessionId}/element/${elementId}/click`, 'POST');
+}
+
+// Send keys to element
+async function sendKeysToElement(sessionId, elementId, text) {
+  return callWinAppDriver(`/session/${sessionId}/element/${elementId}/value`, 'POST', {
+    value: text.split('')
+  });
+}
+
+// Take screenshot
+async function takeAppScreenshot(sessionId) {
+  const result = await callWinAppDriver(`/session/${sessionId}/screenshot`, 'GET');
+  return result.value; // base64 string
+}
+
+// Get window rect
+async function getWindowRect(sessionId) {
+  return callWinAppDriver(`/session/${sessionId}/window/rect`, 'GET');
+}
+
+// Close session
+async function closeAppSession(sessionId) {
+  try {
+    return callWinAppDriver(`/session/${sessionId}`, 'DELETE');
+  } catch (e) {
+    // Session might already be closed
+    return null;
+  }
+}
+
+// Execute a test scenario step
+async function executeScenarioStep(sessionId, step, results) {
+  const timestamp = Date.now();
+  const screenshotPath = path.join(APPS_RESULTS_DIR, `screenshot-${timestamp}.png`);
+
+  try {
+    switch (step.action) {
+      case 'start':
+        // App is already started when session is created
+        return { success: true, message: 'Applicatie gestart' };
+
+      case 'wait':
+        await new Promise(r => setTimeout(r, step.duration || 1000));
+        return { success: true, message: `Gewacht ${step.duration || 1000}ms` };
+
+      case 'click':
+        let clickElementId;
+        if (step.by === 'image') {
+          // For image-based clicking, we'd need SikuliX or similar
+          // For now, return info that manual verification is needed
+          return {
+            success: true,
+            message: 'Image-based click: gebruik SikuliX voor volledige ondersteuning',
+            needsManual: true
+          };
+        } else {
+          clickElementId = await findElement(sessionId, step.by || 'name', step.target);
+          if (clickElementId) {
+            await clickElement(sessionId, clickElementId);
+            return { success: true, message: `Geklikt op ${step.target}` };
+          }
+          return { success: false, message: `Element niet gevonden: ${step.target}` };
+        }
+
+      case 'type':
+        const typeElementId = await findElement(sessionId, step.by || 'name', step.target);
+        if (typeElementId) {
+          await sendKeysToElement(sessionId, typeElementId, step.text);
+          return { success: true, message: `Tekst ingevoerd in ${step.target}` };
+        }
+        return { success: false, message: `Invoerveld niet gevonden: ${step.target}` };
+
+      case 'screenshot':
+        const screenshot = await takeAppScreenshot(sessionId);
+        fs.writeFileSync(screenshotPath, Buffer.from(screenshot, 'base64'));
+        return {
+          success: true,
+          message: 'Screenshot gemaakt',
+          screenshot: `/app-results/screenshot-${timestamp}.png`
+        };
+
+      case 'verify':
+        const verifyElementId = await findElement(sessionId, step.by || 'name', step.target);
+        if (verifyElementId) {
+          return { success: true, message: `Element gevonden: ${step.target}` };
+        }
+        return { success: false, message: `Element niet gevonden: ${step.target}` };
+
+      case 'key':
+        // Send keyboard shortcut
+        await callWinAppDriver(`/session/${sessionId}/keys`, 'POST', {
+          value: [step.key]
+        });
+        return { success: true, message: `Toets ${step.key} ingedrukt` };
+
+      case 'close':
+        await closeAppSession(sessionId);
+        return { success: true, message: 'Applicatie gesloten' };
+
+      default:
+        return { success: false, message: `Onbekende actie: ${step.action}` };
+    }
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
+
+// === WINAPPDRIVER API ROUTES ===
+
+// Get all configured apps
+app.get('/api/apps', (req, res) => {
+  const config = loadAppsConfig();
+  res.json(config.apps);
+});
+
+// Add new app
+app.post('/api/apps', (req, res) => {
+  const { name, target, windowTitle, description } = req.body;
+  if (!name || !target) {
+    return res.status(400).json({ error: 'Naam en target zijn verplicht' });
+  }
+
+  const config = loadAppsConfig();
+  const newApp = {
+    id: Date.now().toString(),
+    name,
+    target,
+    windowTitle: windowTitle || '',
+    description: description || '',
+    createdAt: new Date().toISOString()
+  };
+
+  config.apps.push(newApp);
+  saveAppsConfig(config);
+
+  res.json({ success: true, app: newApp });
+});
+
+// Delete app
+app.delete('/api/apps/:id', (req, res) => {
+  const config = loadAppsConfig();
+  config.apps = config.apps.filter(a => a.id !== req.params.id);
+  saveAppsConfig(config);
+  res.json({ success: true });
+});
+
+// Get all scenarios
+app.get('/api/app-scenarios', (req, res) => {
+  const config = loadAppsConfig();
+  res.json(config.scenarios);
+});
+
+// Add new scenario
+app.post('/api/app-scenarios', (req, res) => {
+  const { name, appId, steps } = req.body;
+  if (!name || !appId || !steps || !Array.isArray(steps)) {
+    return res.status(400).json({ error: 'Naam, appId en steps zijn verplicht' });
+  }
+
+  const config = loadAppsConfig();
+  const newScenario = {
+    id: Date.now().toString(),
+    name,
+    appId,
+    steps,
+    createdAt: new Date().toISOString()
+  };
+
+  config.scenarios.push(newScenario);
+  saveAppsConfig(config);
+
+  res.json({ success: true, scenario: newScenario });
+});
+
+// Delete scenario
+app.delete('/api/app-scenarios/:id', (req, res) => {
+  const config = loadAppsConfig();
+  config.scenarios = config.scenarios.filter(s => s.id !== req.params.id);
+  saveAppsConfig(config);
+  res.json({ success: true });
+});
+
+// Run a scenario
+app.post('/api/app-scenarios/:id/run', async (req, res) => {
+  const config = loadAppsConfig();
+  const scenario = config.scenarios.find(s => s.id === req.params.id);
+
+  if (!scenario) {
+    return res.status(404).json({ error: 'Scenario niet gevonden' });
+  }
+
+  const app = config.apps.find(a => a.id === scenario.appId);
+  if (!app) {
+    return res.status(404).json({ error: 'Applicatie niet gevonden' });
+  }
+
+  // Parse target into path and arguments
+  const targetParts = app.target.match(/^"?([^"]+)"?\s*(.*)$/);
+  const appPath = targetParts ? targetParts[1] : app.target;
+  const appArgs = targetParts ? targetParts[2] : '';
+
+  const results = {
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    appName: app.name,
+    startTime: new Date().toISOString(),
+    steps: [],
+    success: true
+  };
+
+  let sessionId = null;
+
+  try {
+    // Start WinAppDriver session
+    sessionId = await startAppSession(appPath, appArgs, app.windowTitle);
+    results.sessionId = sessionId;
+
+    // Execute each step
+    for (const step of scenario.steps) {
+      const stepResult = await executeScenarioStep(sessionId, step, results);
+      results.steps.push({
+        action: step.action,
+        target: step.target,
+        ...stepResult
+      });
+
+      if (!stepResult.success) {
+        results.success = false;
+      }
+
+      // Emit real-time update via Socket.IO
+      io.emit('app-test-step', {
+        scenarioId: scenario.id,
+        step: step.action,
+        result: stepResult
+      });
+    }
+
+  } catch (error) {
+    results.success = false;
+    results.error = error.message;
+  } finally {
+    // Always close session
+    if (sessionId) {
+      await closeAppSession(sessionId);
+    }
+    results.endTime = new Date().toISOString();
+  }
+
+  // Save results
+  const resultFile = path.join(APPS_RESULTS_DIR, `result-${scenario.id}-${Date.now()}.json`);
+  fs.writeFileSync(resultFile, JSON.stringify(results, null, 2));
+
+  res.json(results);
+});
+
+// Check WinAppDriver status
+app.get('/api/winappdriver-status', async (req, res) => {
+  try {
+    const status = await callWinAppDriver('/status', 'GET');
+    res.json({ running: true, status });
+  } catch (error) {
+    res.json({ running: false, error: error.message });
+  }
+});
+
+// Serve app results screenshots
+app.use('/app-results', express.static(APPS_RESULTS_DIR));
 
 // Start server
 server.listen(PORT, () => {

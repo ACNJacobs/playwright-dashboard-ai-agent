@@ -69,7 +69,7 @@ npx playwright install
 node server.js
 ```
 
-Open http://localhost:3002 in your browser.
+Open http://localhost:8080 in your browser.
 
 ## 🖥️ Dashboard Tabs
 
@@ -134,7 +134,87 @@ playwright-dashboard-ai-agent/
 └── package.json
 ```
 
-## 🔒 Security Notes
+## �️ Applicaties Testen (WinAppDriver)
+
+Test **Windows desktop applicaties** zoals Progress OpenEdge, .NET apps, en meer.
+
+### Installatie WinAppDriver
+
+1. **Download WinAppDriver** (gratis, Microsoft):
+   - [GitHub Releases](https://github.com/microsoft/WinAppDriver/releases)
+   - Of via winget: `winget install Microsoft.WinAppDriver`
+
+2. **Start WinAppDriver** voordat je test:
+   ```powershell
+   "C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe"
+   ```
+   Standaard draait het op `http://127.0.0.1:4723`
+
+3. **Windows Developer Mode** moet aan staan:
+   - Instellingen → Privacy & Beveiliging → Voor ontwikkelaars → Ontwikkelaarsmodus → Aan
+
+### Een Applicatie Configureren
+
+1. Ga naar het **🖥️ Applicaties** tabblad
+2. Vul in:
+   - **Naam**: `MTC Client`
+   - **Target**: `C:\vma\dlc117\bin\prowin32.exe -basekey ini -ininame "C:\vma\mtcclient\startmtc.ini" -p startmtc.p`
+   - **Venster Titel**: `MTC Client` (optioneel, voor herkenning)
+3. Klik **➕ Toevoegen**
+
+### Test Scenario Maken
+
+1. Kies een applicatie uit de dropdown
+2. Geef het scenario een naam (bijv. "Login Test")
+3. Voeg stappen toe:
+   | Stap | Actie | Target | Details |
+   |------|-------|--------|---------|
+   | 1 | `start` | — | Start de app |
+   | 2 | `wait` | — | 2000ms |
+   | 3 | `click` | `OK` | Klik op OK knop |
+   | 4 | `type` | `Gebruikersnaam` | `admin` |
+   | 5 | `key` | — | `Enter` |
+   | 6 | `screenshot` | — | Maak screenshot |
+   | 7 | `close` | — | Sluit app |
+4. Klik **💾 Scenario Opslaan**
+
+### Scenario Uitvoeren
+
+1. Klik de **▶️** knop bij een scenario
+2. De app start automatisch
+3. Stappen worden één voor één uitgevoerd
+4. Screenshots worden opgeslagen in `app-results/`
+
+### Ondersteunde Acties
+
+| Actie | Beschrijving | Vereist Target |
+|-------|-------------|----------------|
+| `start` | Start de applicatie | Nee |
+| `wait` | Wacht X milliseconden | Nee (duration) |
+| `click` | Klik op element | Ja (element naam) |
+| `type` | Typ tekst in veld | Ja (veld + tekst) |
+| `key` | Druk toets(en) | Nee (key) |
+| `screenshot` | Maak screenshot | Nee |
+| `verify` | Controleer of element bestaat | Ja |
+| `close` | Sluit applicatie | Nee |
+
+### Zoekmethoden (By)
+
+- `name` — Element naam (standaard)
+- `accessibility id` — Accessibility ID
+- `class name` — Class name
+- `xpath` — XPath expressie
+
+### Troubleshooting
+
+| Probleem | Oplossing |
+|----------|-----------|
+| "WinAppDriver niet bereikbaar" | Start WinAppDriver.exe |
+| "Element niet gevonden" | Controleer element naam, probeer `accessibility id` |
+| App start niet | Controleer pad en argumenten, test in CMD |
+| Screenshot is leeg | Wacht langer (`wait` stap toevoegen) |
+
+## �🔒 Security Notes
 
 - `config/api-config.json` is **gitignored** — never commit API keys
 - Site agent credentials are stored locally in `config/site-agents.json`

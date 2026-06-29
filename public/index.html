@@ -62,6 +62,10 @@
             <span class="tab-icon"><i class="fa-solid fa-clock"></i></span>
             <span class="tab-label">Gepland</span>
         </button>
+        <button class="tab-btn" data-tab="apps" data-icon="🖥️" title="Applicaties">
+            <span class="tab-icon"><i class="fa-solid fa-desktop"></i></span>
+            <span class="tab-label">Applicaties</span>
+        </button>
         <button class="tab-btn" data-tab="ai-agent" data-icon="🤖" title="AI Agent">
             <span class="tab-icon"><i class="fa-solid fa-robot"></i></span>
             <span class="tab-label">AI Agent</span>
@@ -280,6 +284,135 @@ test('mijn test', async ({ page }) => {
                 </div>
             </div>
         </div>
+        
+        <!-- Applicaties Tab -->
+        <section id="apps-tab" class="tab-content">
+            <div class="form-card">
+                <h2><i class="fa-solid fa-desktop"></i> Applicaties Testen</h2>
+                <p>Test Windows applicaties via WinAppDriver.</p>
+                
+                <div class="form-group">
+                    <label>WinAppDriver Status:</label>
+                    <div id="winappdriver-status" class="status-badge status-info">
+                        <i class="fa-solid fa-circle-question"></i> Controleren...
+                    </div>
+                </div>
+                
+                <hr>
+                <h3><i class="fa-solid fa-plus"></i> Nieuwe Applicatie</h3>
+                
+                <div class="form-group">
+                    <label for="app-name">Naam:</label>
+                    <input type="text" id="app-name" placeholder="bijv. MTC Client">
+                </div>
+                <div class="form-group">
+                    <label for="app-target">Target (pad + argumenten):</label>
+                    <input type="text" id="app-target" placeholder='C:\\vma\\dlc117\\bin\\prowin32.exe -basekey ini -ininame "C:\\vma\\mtcclient\\startmtc.ini" -p startmtc.p'>
+                    <small>Volledig pad naar .exe met alle argumenten</small>
+                </div>
+                <div class="form-group">
+                    <label for="app-window-title">Venster Titel (optioneel):</label>
+                    <input type="text" id="app-window-title" placeholder="MTC Client">
+                    <small>Titel om het venster te herkennen</small>
+                </div>
+                <div class="form-group">
+                    <label for="app-description">Beschrijving (optioneel):</label>
+                    <input type="text" id="app-description" placeholder="Korte beschrijving van de applicatie">
+                </div>
+                <button id="add-app-btn" class="btn btn-primary" title="Toevoegen">
+                    <i class="fa-solid fa-plus"></i> Toevoegen
+                </button>
+            </div>
+            
+            <h3>Geconfigureerde Applicaties</h3>
+            <div id="apps-list" class="card-grid">
+                <!-- Apps worden hier geladen -->
+            </div>
+            
+            <hr>
+            <div class="form-card">
+                <h3><i class="fa-solid fa-flask"></i> Nieuw Test Scenario</h3>
+                
+                <div class="form-group">
+                    <label for="scenario-name">Scenario Naam:</label>
+                    <input type="text" id="scenario-name" placeholder="bijv. Login Test">
+                </div>
+                <div class="form-group">
+                    <label for="scenario-app">Applicatie:</label>
+                    <select id="scenario-app">
+                        <option value="">-- Kies een applicatie --</option>
+                    </select>
+                </div>
+                
+                <div id="scenario-steps">
+                    <h4>Stappen</h4>
+                    <div id="steps-list" class="steps-list">
+                        <!-- Stappen worden hier toegevoegd -->
+                    </div>
+                    <div class="form-group">
+                        <label>Stap toevoegen:</label>
+                        <select id="step-action">
+                            <option value="start">Start applicatie</option>
+                            <option value="wait">Wacht</option>
+                            <option value="click">Klik</option>
+                            <option value="type">Typ tekst</option>
+                            <option value="key">Toets indrukken</option>
+                            <option value="screenshot">Screenshot</option>
+                            <option value="verify">Verifieer element</option>
+                            <option value="close">Sluit applicatie</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="step-target-group">
+                        <label for="step-target">Target (element naam/ID):</label>
+                        <input type="text" id="step-target" placeholder="bijv. OK, #loginBtn">
+                    </div>
+                    <div class="form-group" id="step-text-group" style="display:none;">
+                        <label for="step-text">Tekst:</label>
+                        <input type="text" id="step-text" placeholder="Tekst om in te voeren">
+                    </div>
+                    <div class="form-group" id="step-duration-group" style="display:none;">
+                        <label for="step-duration">Duur (ms):</label>
+                        <input type="number" id="step-duration" value="1000" min="100" step="100">
+                    </div>
+                    <div class="form-group" id="step-key-group" style="display:none;">
+                        <label for="step-key">Toets:</label>
+                        <select id="step-key">
+                            <option value="Enter">Enter</option>
+                            <option value="Tab">Tab</option>
+                            <option value="Escape">Escape</option>
+                            <option value="Space">Spatie</option>
+                            <option value="F1">F1</option>
+                            <option value="F2">F2</option>
+                            <option value="F5">F5</option>
+                            <option value="Ctrl+a">Ctrl+A</option>
+                            <option value="Ctrl+c">Ctrl+C</option>
+                            <option value="Ctrl+v">Ctrl+V</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="step-by">Zoekmethode:</label>
+                        <select id="step-by">
+                            <option value="name">Naam</option>
+                            <option value="accessibility id">Accessibility ID</option>
+                            <option value="class name">Class Name</option>
+                            <option value="xpath">XPath</option>
+                        </select>
+                    </div>
+                    <button id="add-step-btn" class="btn btn-secondary btn-sm">
+                        <i class="fa-solid fa-plus"></i> Stap Toevoegen
+                    </button>
+                </div>
+                
+                <button id="save-scenario-btn" class="btn btn-primary" title="Scenario Opslaan">
+                    <i class="fa-solid fa-floppy-disk"></i> Scenario Opslaan
+                </button>
+            </div>
+            
+            <h3>Test Scenarios</h3>
+            <div id="scenarios-list" class="card-grid">
+                <!-- Scenarios worden hier geladen -->
+            </div>
+        </section>
         
         <!-- AI Agent Tab -->
         <section id="ai-agent-tab" class="tab-content">

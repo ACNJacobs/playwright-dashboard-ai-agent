@@ -2265,6 +2265,94 @@ main {
     color: var(--warning);
 }
 
+/* ============================================
+   APPLICATIES TAB STYLES
+   ============================================ */
+
+.steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-action {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: capitalize;
+    min-width: 80px;
+}
+
+.step-target {
+    color: var(--accent);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+}
+
+.step-text {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.step-duration {
+    color: var(--warning);
+    font-size: 0.8rem;
+}
+
+.step-key {
+    background: var(--border-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+.btn-xs {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+}
+
+/* App results screenshots */
+.app-screenshot {
+    max-width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-top: 8px;
+}
+
+/* Status badge danger */
+.status-badge.status-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
 .mcp-log-args {
     background: #0f172a;
     padding: 8px 10px;

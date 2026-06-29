@@ -3307,6 +3307,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveCodeBtn) {
         saveCodeBtn.addEventListener('click', saveGeneratedCode);
     }
+    
+    // Event listeners voor Applicaties tab
+    const addAppBtn = document.getElementById('add-app-btn');
+    const stepActionSelect = document.getElementById('step-action');
+    const addStepBtn = document.getElementById('add-step-btn');
+    const saveScenarioBtn = document.getElementById('save-scenario-btn');
+    const appsTabBtn = document.querySelector('[data-tab="apps"]');
+    
+    if (addAppBtn) {
+        addAppBtn.addEventListener('click', addApp);
+    }
+    
+    if (stepActionSelect) {
+        stepActionSelect.addEventListener('change', updateStepFormUI);
+        updateStepFormUI(); // Initialize
+    }
+    
+    if (addStepBtn) {
+        addStepBtn.addEventListener('click', addScenarioStep);
+    }
+    
+    if (saveScenarioBtn) {
+        saveScenarioBtn.addEventListener('click', saveScenario);
+    }
+    
+    if (appsTabBtn) {
+        appsTabBtn.addEventListener('click', () => {
+            loadApps();
+            loadScenarios();
+            checkWinAppDriverStatus();
+        });
+    }
 });
 
 // ============================================
@@ -3448,3 +3480,337 @@ async function saveGeneratedCode() {
         alert(`Fout bij opslaan code: ${error.message}`);
     }
 }
+
+// ============================================
+// APPLICATIE TEST FUNCTIES (WinAppDriver)
+// ============================================
+
+let currentScenarioSteps = [];
+
+// Check WinAppDriver status
+async function checkWinAppDriverStatus() {
+    const statusEl = document.getElementById('winappdriver-status');
+    if (!statusEl) return;
+    
+    try {
+        const response = await fetch('/api/winappdriver-status');
+        const data = await response.json();
+        
+        if (data.running) {
+            statusEl.className = 'status-badge status-success';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> WinAppDriver actief';
+        } else {
+            statusEl.className = 'status-badge status-warning';
+            statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> WinAppDriver niet bereikbaar. Start: WinAppDriver.exe';
+        }
+    } catch (error) {
+        statusEl.className = 'status-badge status-danger';
+        statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> WinAppDriver niet bereikbaar';
+    }
+}
+
+// Load apps list
+async function loadApps() {
+    try {
+        const response = await fetch('/api/apps');
+        const apps = await response.json();
+        
+        const listEl = document.getElementById('apps-list');
+        const scenarioSelect = document.getElementById('scenario-app');
+        
+        if (listEl) {
+            if (apps.length === 0) {
+                listEl.innerHTML = '<p class="empty-state">Geen applicaties geconfigureerd. Voeg er een toe!</p>';
+            } else {
+                listEl.innerHTML = apps.map(app => `
+                    <div class="card" data-app-id="${app.id}">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-desktop"></i> ${app.name}</h3>
+                            <span class="status-badge status-info">Geconfigureerd</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-meta">
+                                <i class="fa-solid fa-terminal"></i> ${app.target.substring(0, 60)}${app.target.length > 60 ? '...' : ''}
+                            </div>
+                            ${app.windowTitle ? `<div class="card-meta"><i class="fa-solid fa-window-maximize"></i> ${app.windowTitle}</div>` : ''}
+                            ${app.description ? `<div class="card-meta"><i class="fa-solid fa-align-left"></i> ${app.description}</div>` : ''}
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-danger btn-sm" onclick="deleteApp('${app.id}')" title="Verwijderen">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // Update scenario dropdown
+        if (scenarioSelect) {
+            scenarioSelect.innerHTML = '<option value="">-- Kies een applicatie --</option>' +
+                apps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
+        }
+    } catch (error) {
+        console.error('Fout bij laden apps:', error);
+    }
+}
+
+// Add new app
+async function addApp() {
+    const name = document.getElementById('app-name').value.trim();
+    const target = document.getElementById('app-target').value.trim();
+    const windowTitle = document.getElementById('app-window-title').value.trim();
+    const description = document.getElementById('app-description').value.trim();
+    
+    if (!name || !target) {
+        alert('Naam en target zijn verplicht!');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/apps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, target, windowTitle, description })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById('app-name').value = '';
+            document.getElementById('app-target').value = '';
+            document.getElementById('app-window-title').value = '';
+            document.getElementById('app-description').value = '';
+            loadApps();
+        } else {
+            alert('Fout: ' + result.error);
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Delete app
+async function deleteApp(id) {
+    if (!confirm('Weet je zeker dat je deze applicatie wilt verwijderen?')) return;
+    
+    try {
+        const response = await fetch(`/api/apps/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (result.success) {
+            loadApps();
+            loadScenarios();
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Update step form UI based on action type
+function updateStepFormUI() {
+    const action = document.getElementById('step-action').value;
+    
+    document.getElementById('step-target-group').style.display = 
+        ['click', 'type', 'verify'].includes(action) ? 'block' : 'none';
+    document.getElementById('step-text-group').style.display = 
+        action === 'type' ? 'block' : 'none';
+    document.getElementById('step-duration-group').style.display = 
+        action === 'wait' ? 'block' : 'none';
+    document.getElementById('step-key-group').style.display = 
+        action === 'key' ? 'block' : 'none';
+}
+
+// Add step to scenario
+function addScenarioStep() {
+    const action = document.getElementById('step-action').value;
+    const target = document.getElementById('step-target').value.trim();
+    const text = document.getElementById('step-text').value.trim();
+    const duration = document.getElementById('step-duration').value;
+    const key = document.getElementById('step-key').value;
+    const by = document.getElementById('step-by').value;
+    
+    const step = { action, by };
+    
+    if (target) step.target = target;
+    if (text) step.text = text;
+    if (duration) step.duration = parseInt(duration);
+    if (key) step.key = key;
+    
+    currentScenarioSteps.push(step);
+    renderStepsList();
+    
+    // Clear inputs
+    document.getElementById('step-target').value = '';
+    document.getElementById('step-text').value = '';
+}
+
+// Remove step from scenario
+function removeStep(index) {
+    currentScenarioSteps.splice(index, 1);
+    renderStepsList();
+}
+
+// Render steps list
+function renderStepsList() {
+    const listEl = document.getElementById('steps-list');
+    if (!listEl) return;
+    
+    if (currentScenarioSteps.length === 0) {
+        listEl.innerHTML = '<p class="empty-state">Geen stappen toegevoegd.</p>';
+        return;
+    }
+    
+    listEl.innerHTML = currentScenarioSteps.map((step, index) => `
+        <div class="step-item">
+            <span class="step-number">${index + 1}</span>
+            <span class="step-action">${step.action}</span>
+            ${step.target ? `<span class="step-target">${step.target}</span>` : ''}
+            ${step.text ? `<span class="step-text">"${step.text}"</span>` : ''}
+            ${step.duration ? `<span class="step-duration">${step.duration}ms</span>` : ''}
+            ${step.key ? `<span class="step-key">[${step.key}]</span>` : ''}
+            <button class="btn btn-danger btn-xs" onclick="removeStep(${index})" title="Verwijderen">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+// Save scenario
+async function saveScenario() {
+    const name = document.getElementById('scenario-name').value.trim();
+    const appId = document.getElementById('scenario-app').value;
+    
+    if (!name || !appId) {
+        alert('Scenario naam en applicatie zijn verplicht!');
+        return;
+    }
+    
+    if (currentScenarioSteps.length === 0) {
+        alert('Voeg minimaal één stap toe!');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/app-scenarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, appId, steps: currentScenarioSteps })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById('scenario-name').value = '';
+            document.getElementById('scenario-app').value = '';
+            currentScenarioSteps = [];
+            renderStepsList();
+            loadScenarios();
+        } else {
+            alert('Fout: ' + result.error);
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Load scenarios
+async function loadScenarios() {
+    try {
+        const response = await fetch('/api/app-scenarios');
+        const scenarios = await response.json();
+        
+        const listEl = document.getElementById('scenarios-list');
+        if (!listEl) return;
+        
+        if (scenarios.length === 0) {
+            listEl.innerHTML = '<p class="empty-state">Geen scenarios. Maak er een!</p>';
+            return;
+        }
+        
+        // Get apps for names
+        const appsResponse = await fetch('/api/apps');
+        const apps = await appsResponse.json();
+        
+        listEl.innerHTML = scenarios.map(scenario => {
+            const app = apps.find(a => a.id === scenario.appId);
+            return `
+                <div class="card" data-scenario-id="${scenario.id}">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-flask"></i> ${scenario.name}</h3>
+                        <span class="status-badge status-info">${scenario.steps.length} stappen</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-meta">
+                            <i class="fa-solid fa-desktop"></i> ${app ? app.name : 'Onbekende app'}
+                        </div>
+                        <div class="card-meta">
+                            <i class="fa-solid fa-list-ol"></i> ${scenario.steps.map(s => s.action).join(', ')}
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" onclick="runScenario('${scenario.id}')" title="Uitvoeren">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteScenario('${scenario.id}')" title="Verwijderen">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Fout bij laden scenarios:', error);
+    }
+}
+
+// Run scenario
+async function runScenario(id) {
+    try {
+        const response = await fetch(`/api/app-scenarios/${id}/run`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success === false) {
+            alert('Scenario mislukt: ' + (result.error || 'Onbekende fout'));
+        } else {
+            const stepResults = result.steps.map(s => 
+                `${s.action}: ${s.success ? '✅' : '❌'} ${s.message}`
+            ).join('\n');
+            
+            alert(`Scenario uitgevoerd!\n\n${stepResults}`);
+            
+            // Show screenshots if any
+            const screenshots = result.steps.filter(s => s.screenshot);
+            if (screenshots.length > 0) {
+                console.log('Screenshots:', screenshots.map(s => s.screenshot));
+            }
+        }
+    } catch (error) {
+        alert('Fout bij uitvoeren scenario: ' + error.message);
+    }
+}
+
+// Delete scenario
+async function deleteScenario(id) {
+    if (!confirm('Weet je zeker dat je dit scenario wilt verwijderen?')) return;
+    
+    try {
+        const response = await fetch(`/api/app-scenarios/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (result.success) {
+            loadScenarios();
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    }
+}
+
+// Socket.IO event for real-time app test updates
+socket.on('app-test-step', (data) => {
+    console.log('App test step:', data);
+});

@@ -3287,7 +3287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateScheduleFormUI();
     
     // Event listeners voor interactieve codegeneratie
-    const startCodegenBtn = document.getElementById('start-codegen-btn');
+    const startCodegenBtn = document.getElementById('start-ai-codegen-btn');
     const sendCodegenInstructionBtn = document.getElementById('send-codegen-instruction-btn');
     const editCodeBtn = document.getElementById('edit-code-btn');
     const saveCodeBtn = document.getElementById('save-code-btn');

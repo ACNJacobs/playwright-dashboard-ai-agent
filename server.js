@@ -3313,8 +3313,20 @@ app.get('/api/app-scenarios', (req, res) => {
 // Add new scenario
 app.post('/api/app-scenarios', (req, res) => {
   const { name, appId, steps } = req.body;
-  if (!name || !appId || !steps || !Array.isArray(steps)) {
-    return res.status(400).json({ error: 'Scenario naam, applicatie en minimaal één stap zijn verplicht' });
+  
+  // Gedetailleerde validatie met specifieke foutmeldingen
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'Scenario naam is verplicht' });
+  }
+  if (!appId || typeof appId !== 'string') {
+    return res.status(400).json({ error: 'Applicatie is verplicht' });
+  }
+  if (!steps || !Array.isArray(steps)) {
+    console.error('Scenario save error: steps is missing or not an array', { name, appId, stepsType: typeof steps });
+    return res.status(400).json({ error: 'Stappen zijn verplicht en moeten een array zijn' });
+  }
+  if (steps.length === 0) {
+    return res.status(400).json({ error: 'Minimaal één stap is verplicht' });
   }
 
   const config = loadAppsConfig();

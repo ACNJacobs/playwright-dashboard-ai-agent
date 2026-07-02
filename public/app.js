@@ -3922,12 +3922,20 @@ async function saveScenario() {
         return;
     }
     
-    if (currentScenarioSteps.length === 0) {
+    if (!currentScenarioSteps || !Array.isArray(currentScenarioSteps) || currentScenarioSteps.length === 0) {
+        console.error('saveScenario: currentScenarioSteps is invalid', currentScenarioSteps);
         alert('Voeg minimaal één stap toe!');
         return;
     }
     
     try {
+        console.log('Verstuur handmatig scenario naar server:', {
+            name,
+            appId,
+            stepsCount: currentScenarioSteps.length,
+            steps: currentScenarioSteps
+        });
+        
         const response = await fetch('/api/app-scenarios', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3935,6 +3943,12 @@ async function saveScenario() {
         });
         
         const result = await response.json();
+        
+        if (!response.ok) {
+            console.error('Server fout bij opslaan scenario:', result);
+            alert('Fout: ' + (result.error || 'Onbekende server fout'));
+            return;
+        }
         
         if (result.success) {
             document.getElementById('scenario-name').value = '';
@@ -3948,6 +3962,7 @@ async function saveScenario() {
             alert('Fout: ' + result.error);
         }
     } catch (error) {
+        console.error('Fout bij opslaan scenario:', error);
         alert('Fout: ' + error.message);
     }
 }
@@ -4569,13 +4584,35 @@ async function createTestPlanFromDescription(description, app) {
 
 // Approve test plan and execute
 async function approveTestPlan() {
-    if (!currentTestPlan) return;
+    if (!currentTestPlan) {
+        alert('Geen test plan om uit te voeren. Genereer eerst een plan.');
+        return;
+    }
+    
+    // Client-side validatie
+    if (!currentTestPlan.steps || !Array.isArray(currentTestPlan.steps)) {
+        console.error('Test plan heeft geen geldige steps array:', currentTestPlan);
+        alert('Fout: Het test plan heeft geen geldige stappen. Genereer het plan opnieuw.');
+        return;
+    }
+    if (currentTestPlan.steps.length === 0) {
+        alert('Fout: Het test plan heeft geen stappen. Voeg minimaal één stap toe.');
+        return;
+    }
     
     const btn = document.getElementById('approve-test-plan-btn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Test uitvoeren...';
     
     try {
+        // Log wat we versturen voor debugging
+        console.log('Verstuur scenario naar server:', {
+            name: currentTestPlan.name,
+            appId: currentTestPlan.appId,
+            stepsCount: currentTestPlan.steps.length,
+            steps: currentTestPlan.steps
+        });
+        
         // Save scenario
         const response = await fetch('/api/app-scenarios', {
             method: 'POST',
@@ -4588,6 +4625,12 @@ async function approveTestPlan() {
         });
         
         const result = await response.json();
+        
+        if (!response.ok) {
+            console.error('Server fout bij opslaan scenario:', result);
+            alert('Fout bij opslaan: ' + (result.error || 'Onbekende server fout'));
+            return;
+        }
         
         if (result.success) {
             // Run the scenario
@@ -4610,6 +4653,7 @@ async function approveTestPlan() {
             alert('Fout bij opslaan: ' + result.error);
         }
     } catch (error) {
+        console.error('Fout bij uitvoeren test plan:', error);
         alert('Fout: ' + error.message);
     } finally {
         btn.disabled = false;

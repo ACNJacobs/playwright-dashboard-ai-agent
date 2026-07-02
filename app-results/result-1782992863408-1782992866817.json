@@ -1,0 +1,33 @@
+{
+  "scenarioId": "1782992863408",
+  "scenarioName": "AI: start notepad, wacht, type 'Test geslaagd door AI ...",
+  "appName": "Kladblok",
+  "startTime": "2026-07-02T11:47:43.414Z",
+  "steps": [
+    {
+      "action": "start",
+      "target": "notepad.exe",
+      "success": true,
+      "message": "Applicatie gestart"
+    },
+    {
+      "action": "wait",
+      "success": true,
+      "message": "Gewacht 2000ms"
+    },
+    {
+      "action": "type",
+      "target": "Edit",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "close",
+      "success": true,
+      "message": "Applicatie gesloten"
+    }
+  ],
+  "success": false,
+  "sessionId": "2E033078-D7BE-45BE-AD33-E517254FCEE0",
+  "endTime": "2026-07-02T11:47:46.817Z"
+}

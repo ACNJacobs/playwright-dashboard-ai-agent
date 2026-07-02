@@ -26,6 +26,91 @@
         }
       ],
       "createdAt": "2026-07-01T08:48:38.978Z"
+    },
+    {
+      "id": "1782981855139",
+      "name": "Test Notepad",
+      "appId": "1782817773710",
+      "steps": [
+        {
+          "action": "start",
+          "target": "notepad.exe",
+          "description": "Start Notepad"
+        },
+        {
+          "action": "type",
+          "target": "Edit",
+          "by": "class name",
+          "value": "wij doen het",
+          "description": "Type tekst"
+        },
+        {
+          "action": "key",
+          "value": "Ctrl+s",
+          "description": "Opslaan"
+        },
+        {
+          "action": "type",
+          "target": "Bestandsnaam:",
+          "by": "name",
+          "value": "wijdoenhet",
+          "description": "Bestandsnaam"
+        },
+        {
+          "action": "click",
+          "target": "Opslaan",
+          "by": "name",
+          "description": "Klik Opslaan"
+        },
+        {
+          "action": "close",
+          "description": "Sluit Notepad"
+        }
+      ],
+      "createdAt": "2026-07-02T08:44:15.139Z"
+    },
+    {
+      "id": "1782981864770",
+      "name": "AI: start notepad schrijf \"wij doen het\" s...",
+      "appId": "1782817773710",
+      "steps": [
+        {
+          "action": "start",
+          "description": "Start Notepad",
+          "target": "notepad.exe",
+          "value": ""
+        },
+        {
+          "action": "type",
+          "description": "Type tekst",
+          "target": "Edit",
+          "by": "class name",
+          "value": "wij doen het"
+        },
+        {
+          "action": "key",
+          "description": "Opslaan",
+          "value": "Ctrl+s"
+        },
+        {
+          "action": "type",
+          "description": "Bestandsnaam",
+          "target": "Bestandsnaam:",
+          "by": "name",
+          "value": "wijdoenhet"
+        },
+        {
+          "action": "click",
+          "description": "Klik Opslaan",
+          "target": "Opslaan",
+          "by": "name"
+        },
+        {
+          "action": "close",
+          "description": "Sluit Notepad"
+        }
+      ],
+      "createdAt": "2026-07-02T08:44:24.770Z"
     }
   ]
 }

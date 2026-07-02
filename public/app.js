@@ -4274,6 +4274,11 @@ async function generateTestPlan() {
                 if (aiResponse.ok) {
                     const aiResult = await aiResponse.json();
                     plan = aiResult.plan;
+                    // AI API retourneert alleen steps, voeg ontbrekende metadata toe
+                    if (!plan.name) plan.name = `AI: ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`;
+                    if (!plan.appId) plan.appId = app.id;
+                    if (!plan.appName) plan.appName = app.name;
+                    if (!plan.description) plan.description = description;
                 } else {
                     // Fallback to local parser silently
                     plan = await createTestPlanFromDescription(description, app);

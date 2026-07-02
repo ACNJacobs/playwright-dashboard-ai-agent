@@ -1,0 +1,16 @@
+{
+  "scenarioId": "1782895718978",
+  "scenarioName": "Test Scenario",
+  "appName": "Notepad",
+  "startTime": "2026-07-01T08:49:24.251Z",
+  "steps": [
+    {
+      "action": "start",
+      "success": true,
+      "message": "Applicatie gestart"
+    }
+  ],
+  "success": true,
+  "sessionId": "F87A7C3B-90D0-49AE-A62F-F1E55C69799D",
+  "endTime": "2026-07-01T08:49:25.288Z"
+}

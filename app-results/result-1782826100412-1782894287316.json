@@ -1,0 +1,59 @@
+{
+  "scenarioId": "1782826100412",
+  "scenarioName": "Notepad - Nieuw document typen en opslaan",
+  "appName": "Notepad",
+  "startTime": "2026-07-01T08:24:38.128Z",
+  "steps": [
+    {
+      "action": "start",
+      "target": "",
+      "success": true,
+      "message": "Applicatie gestart"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "type",
+      "target": "Naamloos",
+      "success": true,
+      "message": "Tekst ingevoerd in Naamloos"
+    },
+    {
+      "action": "key",
+      "target": "",
+      "success": true,
+      "message": "Toets ctrl+s ingedrukt"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "key",
+      "target": "",
+      "success": true,
+      "message": "Toets Enter ingedrukt"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "close",
+      "target": "",
+      "success": true,
+      "message": "Applicatie gesloten"
+    }
+  ],
+  "success": true,
+  "sessionId": "C311D29D-E225-4ABE-A0E1-AA33061C2DFF",
+  "endTime": "2026-07-01T08:24:47.316Z"
+}

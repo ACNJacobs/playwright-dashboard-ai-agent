@@ -1,0 +1,31 @@
+{
+  "apps": [
+    {
+      "id": "1782817773710",
+      "name": "Notepad",
+      "target": "C:\\Windows\\System32\\notepad.exe",
+      "windowTitle": "Untitled - Notepad",
+      "description": "Windows Notepad voor demo",
+      "createdAt": "2026-06-30T11:09:33.710Z"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "1782895718978",
+      "name": "Test Scenario",
+      "appId": "1782817773710",
+      "steps": [
+        {
+          "action": "start",
+          "by": "name",
+          "duration": 1000,
+          "key": "Enter",
+          "match": "equals",
+          "property": "IsEnabled",
+          "critical": true
+        }
+      ],
+      "createdAt": "2026-07-01T08:48:38.978Z"
+    }
+  ]
+}

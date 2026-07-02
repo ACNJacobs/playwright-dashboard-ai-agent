@@ -296,6 +296,20 @@ test('mijn test', async ({ page }) => {
                     <div id="winappdriver-status" class="status-badge status-info">
                         <i class="fa-solid fa-circle-question"></i> Controleren...
                     </div>
+                    <div class="winappdriver-actions" style="margin-top: 0.5rem;">
+                        <button id="wad-start-btn" class="btn btn-primary btn-sm" title="Start WinAppDriver (blijft draaien)">
+                            <i class="fa-solid fa-play"></i> Start WinAppDriver
+                        </button>
+                        <button id="wad-stop-btn" class="btn btn-danger btn-sm" title="Stop WinAppDriver" style="display:none;">
+                            <i class="fa-solid fa-stop"></i> Stop
+                        </button>
+                        <button id="wad-install-btn" class="btn btn-secondary btn-sm" title="Open download pagina">
+                            <i class="fa-solid fa-download"></i> Installeren
+                        </button>
+                    </div>
+                    <small id="wad-info" style="display:block; margin-top:0.5rem; color:var(--text-muted);">
+                        💡 Tip: Gebruik "Start WinAppDriver" om het automatisch te starten en te houden.
+                    </small>
                 </div>
                 
                 <hr>
@@ -329,17 +343,175 @@ test('mijn test', async ({ page }) => {
                 <!-- Apps worden hier geladen -->
             </div>
             
+            <!-- Element Inspector -->
+            <hr>
+            <div class="form-card">
+                <h3><i class="fa-solid fa-magnifying-glass"></i> Element Inspector</h3>
+                <p>Start een applicatie en ontdek UI elementen om betrouwbare tests te schrijven.</p>
+                
+                <div class="form-group">
+                    <label for="inspector-app">Applicatie:</label>
+                    <select id="inspector-app">
+                        <option value="">-- Kies een applicatie --</option>
+                    </select>
+                </div>
+                
+                <div class="inspector-actions">
+                    <button id="inspector-start-btn" class="btn btn-primary">
+                        <i class="fa-solid fa-play"></i> Start Inspector
+                    </button>
+                    <button id="inspector-refresh-btn" class="btn btn-secondary" disabled>
+                        <i class="fa-solid fa-rotate"></i> Vernieuwen
+                    </button>
+                    <button id="inspector-screenshot-btn" class="btn btn-secondary" disabled>
+                        <i class="fa-solid fa-camera"></i> Screenshot
+                    </button>
+                    <button id="inspector-stop-btn" class="btn btn-danger" disabled>
+                        <i class="fa-solid fa-stop"></i> Stop
+                    </button>
+                </div>
+                
+                <div id="inspector-status" class="status-badge status-info" style="margin-top: 1rem; display: none;">
+                    <i class="fa-solid fa-circle-question"></i> Geen actieve sessie
+                </div>
+                
+                <div id="inspector-results" style="margin-top: 1rem; display: none;">
+                    <div class="inspector-tabs">
+                        <button class="inspector-tab-btn active" data-inspector-tab="elements">Elementen</button>
+                        <button class="inspector-tab-btn" data-inspector-tab="source">XML Source</button>
+                        <button class="inspector-tab-btn" data-inspector-tab="screenshot">Screenshot</button>
+                    </div>
+                    
+                    <div id="inspector-elements-tab" class="inspector-tab-content active">
+                        <div class="inspector-toolbar">
+                            <input type="text" id="inspector-filter" placeholder="Filter elementen..." class="inspector-filter">
+                            <button id="inspector-expand-all" class="btn btn-sm btn-secondary">Alles uitklappen</button>
+                            <button id="inspector-collapse-all" class="btn btn-sm btn-secondary">Alles inklappen</button>
+                        </div>
+                        <div id="inspector-elements-tree" class="inspector-tree">
+                            <p class="empty-state">Start de inspector om elementen te zien.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="inspector-source-tab" class="inspector-tab-content">
+                        <pre id="inspector-source-code" class="inspector-code"></pre>
+                    </div>
+                    
+                    <div id="inspector-screenshot-tab" class="inspector-tab-content">
+                        <div id="inspector-screenshot-container">
+                            <p class="empty-state">Geen screenshot beschikbaar.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <!-- AI Test Designer -->
+            <div class="form-card ai-test-designer">
+                <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Test Designer</h3>
+                <p class="form-description">Beschrijf in gewone taal wat je wilt testen. Ik maak een plan, je reviewt en bewerkt het, en pas daarna voeren we het uit.</p>
+                
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label for="ai-test-app">Applicatie</label>
+                        <select id="ai-test-app">
+                            <option value="">-- Kies een applicatie --</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label for="ai-test-model">AI Model <span id="ai-test-provider-badge" class="provider-badge"></span></label>
+                        <div class="model-selector-wrapper">
+                            <select id="ai-test-model">
+                                <option value="">-- Laad modellen... --</option>
+                            </select>
+                            <button id="ai-test-refresh-models" class="btn btn-sm btn-secondary" title="Modellen verversen">
+                                <i class="fa-solid fa-rotate"></i>
+                            </button>
+                        </div>
+                        <p class="form-hint" id="ai-test-model-hint">Verbind eerst een AI provider in het AI Agent tab</p>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ai-test-description">Wat wil je testen?</label>
+                    <textarea id="ai-test-description" rows="4" placeholder="Bijv: Start Notepad, type 'Hallo Wereld', sla op als test.txt, en sluit af."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ai-test-screenshot">Screenshot (optioneel - helpt de AI om elementen te vinden)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="ai-test-screenshot" accept="image/*" class="file-upload-input">
+                        <div class="file-upload-display" id="screenshot-display">
+                            <i class="fa-solid fa-image"></i>
+                            <span>Klik om screenshot te uploaden of sleep hierheen</span>
+                        </div>
+                        <img id="screenshot-preview" class="screenshot-preview" style="display: none;">
+                        <button id="clear-screenshot-btn" class="btn btn-sm btn-secondary" style="display: none;">
+                            <i class="fa-solid fa-trash"></i> Verwijder
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="generate-test-plan-btn" class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Genereer Test Plan
+                </button>
+                
+                <!-- Plan Review Sectie (initieel verborgen) -->
+                <div id="test-plan-review" class="test-plan-review" style="display: none;">
+                    <div class="test-plan-header">
+                        <h4><i class="fa-solid fa-clipboard-check"></i> Test Plan Review</h4>
+                        <span class="test-plan-badge" id="plan-step-count">0 stappen</span>
+                    </div>
+                    
+                    <div class="test-plan-info">
+                        <div class="info-row">
+                            <span class="info-label">Applicatie:</span>
+                            <span class="info-value" id="plan-app-name">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Beschrijving:</span>
+                            <span class="info-value" id="plan-description">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="test-plan-steps-editable" id="test-plan-steps-container">
+                        <!-- Stappen worden hier getoond en kunnen worden bewerkt -->
+                    </div>
+                    
+                    <div class="test-plan-actions">
+                        <button id="add-step-btn-review" class="btn btn-secondary">
+                            <i class="fa-solid fa-plus"></i> Stap Toevoegen
+                        </button>
+                        <div class="action-group">
+                            <button id="reject-test-plan-btn" class="btn btn-secondary">
+                                <i class="fa-solid fa-pen"></i> Wijzig Beschrijving
+                            </button>
+                            <button id="approve-test-plan-btn" class="btn btn-success">
+                                <i class="fa-solid fa-check"></i> Akkoord - Voer Uit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Resultaat sectie -->
+                <div id="test-plan-result" class="test-plan-result" style="display: none;">
+                    <h4><i class="fa-solid fa-rocket"></i> Test Uitgevoerd!</h4>
+                    <div id="test-plan-result-content"></div>
+                </div>
+            </div>
+            
             <hr>
             <div class="form-card">
                 <h3><i class="fa-solid fa-flask"></i> Nieuw Test Scenario</h3>
                 
                 <div class="form-group">
-                    <label for="scenario-name">Scenario Naam:</label>
-                    <input type="text" id="scenario-name" placeholder="bijv. Login Test">
+                    <label for="scenario-name">Scenario Naam <span class="required">*</span>:</label>
+                    <input type="text" id="scenario-name" placeholder="bijv. Login Test" class="required-field">
                 </div>
                 <div class="form-group">
-                    <label for="scenario-app">Applicatie:</label>
-                    <select id="scenario-app">
+                    <label for="scenario-app">Applicatie <span class="required">*</span>:</label>
+                    <select id="scenario-app" class="required-field">
                         <option value="">-- Kies een applicatie --</option>
                     </select>
                 </div>
@@ -355,10 +527,19 @@ test('mijn test', async ({ page }) => {
                             <option value="start">Start applicatie</option>
                             <option value="wait">Wacht</option>
                             <option value="click">Klik</option>
+                            <option value="doubleclick">Dubbelklik</option>
+                            <option value="rightclick">Rechtsklik</option>
+                            <option value="hover">Hover</option>
                             <option value="type">Typ tekst</option>
                             <option value="key">Toets indrukken</option>
+                            <option value="focus">Focus element</option>
+                            <option value="getText">Haal tekst op</option>
                             <option value="screenshot">Screenshot</option>
-                            <option value="verify">Verifieer element</option>
+                            <option value="verify">Verifieer element bestaat</option>
+                            <option value="verifyText">Verifieer tekst</option>
+                            <option value="verifyValue">Verifieer waarde</option>
+                            <option value="verifyProperty">Verifieer eigenschap</option>
+                            <option value="waitForElement">Wacht op element</option>
                             <option value="close">Sluit applicatie</option>
                         </select>
                     </div>
@@ -388,6 +569,35 @@ test('mijn test', async ({ page }) => {
                             <option value="Ctrl+c">Ctrl+C</option>
                             <option value="Ctrl+v">Ctrl+V</option>
                         </select>
+                    </div>
+                    <div class="form-group" id="step-expected-group" style="display:none;">
+                        <label for="step-expected">Verwachte waarde/tekst:</label>
+                        <input type="text" id="step-expected" placeholder="bijv. Document opgeslagen">
+                    </div>
+                    <div class="form-group" id="step-match-group" style="display:none;">
+                        <label for="step-match">Vergelijkingsmodus:</label>
+                        <select id="step-match">
+                            <option value="equals">Exact gelijk</option>
+                            <option value="contains">Bevat tekst</option>
+                            <option value="startsWith">Begint met</option>
+                            <option value="endsWith">Eindigt met</option>
+                            <option value="regex">Reguliere expressie</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="step-property-group" style="display:none;">
+                        <label for="step-property">Eigenschap:</label>
+                        <select id="step-property">
+                            <option value="IsEnabled">Is ingeschakeld (IsEnabled)</option>
+                            <option value="IsOffscreen">Is zichtbaar (niet IsOffscreen)</option>
+                            <option value="HasKeyboardFocus">Heeft focus (HasKeyboardFocus)</option>
+                            <option value="IsPassword">Is wachtwoordveld (IsPassword)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="step-critical-group" style="display:none;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="step-critical" checked>
+                            <span>Falen = test faalt (niet alleen waarschuwing)</span>
+                        </label>
                     </div>
                     <div class="form-group">
                         <label for="step-by">Zoekmethode:</label>
@@ -740,6 +950,6 @@ test('voorbeeld', async ({ page }) => {
     </main>
 
     <script src="/socket.io/socket.io.js?v=2"></script>
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>

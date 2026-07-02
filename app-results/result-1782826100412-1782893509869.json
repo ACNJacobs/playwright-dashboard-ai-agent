@@ -1,0 +1,10 @@
+{
+  "scenarioId": "1782826100412",
+  "scenarioName": "Notepad - Nieuw document typen en opslaan",
+  "appName": "Notepad",
+  "startTime": "2026-07-01T08:11:49.356Z",
+  "steps": [],
+  "success": false,
+  "error": "fetch failed",
+  "endTime": "2026-07-01T08:11:49.869Z"
+}

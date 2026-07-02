@@ -1,0 +1,65 @@
+{
+  "scenarioId": "1782827201932",
+  "scenarioName": "AI: Start Notepad, type \"Hallo Wereld\", sla op als tes...",
+  "appName": "Notepad",
+  "startTime": "2026-06-30T13:50:20.694Z",
+  "steps": [
+    {
+      "action": "start",
+      "target": "",
+      "success": true,
+      "message": "Applicatie gestart"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "type",
+      "target": "Naamloos",
+      "success": true,
+      "message": "Tekst ingevoerd in Naamloos"
+    },
+    {
+      "action": "key",
+      "target": "",
+      "success": true,
+      "message": "Toets ctrl+s ingedrukt"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "type",
+      "target": "",
+      "success": false,
+      "message": "WinAppDriver error 400: {\"status\":100,\"value\":{\"error\":\"invalid argument\",\"message\":\"Missing Command Parameter: value\"}}"
+    },
+    {
+      "action": "key",
+      "target": "",
+      "success": true,
+      "message": "Toets Enter ingedrukt"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "close",
+      "target": "",
+      "success": true,
+      "message": "Applicatie gesloten"
+    }
+  ],
+  "success": false,
+  "sessionId": "5D0C2F27-445C-468A-B2EC-A15F4A0A099B",
+  "endTime": "2026-06-30T13:50:26.861Z"
+}

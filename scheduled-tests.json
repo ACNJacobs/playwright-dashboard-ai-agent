@@ -1,11 +1,1 @@
-[
-  {
-    "id": "1781618202666",
-    "testFile": "wikipedia.spec.js",
-    "intervalMinutes": 1,
-    "enabled": true,
-    "createdAt": "2026-06-16T13:56:42.666Z",
-    "lastRun": "2026-06-16T20:42:22.699Z",
-    "lastResult": "failed"
-  }
-]
+[]

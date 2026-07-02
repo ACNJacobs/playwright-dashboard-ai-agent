@@ -1,0 +1,65 @@
+{
+  "scenarioId": "1782827201932",
+  "scenarioName": "AI: Start Notepad, type \"Hallo Wereld\", sla op als tes...",
+  "appName": "Notepad",
+  "startTime": "2026-06-30T13:52:28.386Z",
+  "steps": [
+    {
+      "action": "start",
+      "target": "",
+      "success": true,
+      "message": "Applicatie gestart"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "type",
+      "target": "Naamloos",
+      "success": true,
+      "message": "Tekst ingevoerd in Naamloos"
+    },
+    {
+      "action": "key",
+      "target": "",
+      "success": true,
+      "message": "Toets ctrl+s ingedrukt"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "type",
+      "target": "",
+      "success": true,
+      "message": "Tekst ingevoerd in actief element"
+    },
+    {
+      "action": "key",
+      "target": "",
+      "success": true,
+      "message": "Toets Enter ingedrukt"
+    },
+    {
+      "action": "wait",
+      "target": "",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "close",
+      "target": "",
+      "success": true,
+      "message": "Applicatie gesloten"
+    }
+  ],
+  "success": true,
+  "sessionId": "02760877-F3C8-4807-A96B-FEBFE40CD032",
+  "endTime": "2026-06-30T13:52:36.195Z"
+}

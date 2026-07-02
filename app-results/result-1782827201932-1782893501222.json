@@ -1,0 +1,10 @@
+{
+  "scenarioId": "1782827201932",
+  "scenarioName": "AI: Start Notepad, type \"Hallo Wereld\", sla op als tes...",
+  "appName": "Notepad",
+  "startTime": "2026-07-01T08:11:40.709Z",
+  "steps": [],
+  "success": false,
+  "error": "fetch failed",
+  "endTime": "2026-07-01T08:11:41.222Z"
+}

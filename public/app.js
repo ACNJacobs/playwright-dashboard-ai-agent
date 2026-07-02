@@ -3315,6 +3315,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveScenarioBtn = document.getElementById('save-scenario-btn');
     const appsTabBtn = document.querySelector('[data-tab="apps"]');
     
+    // AI Test Designer buttons
+    const generatePlanBtn = document.getElementById('generate-test-plan-btn');
+    const approvePlanBtn = document.getElementById('approve-test-plan-btn');
+    const rejectPlanBtn = document.getElementById('reject-test-plan-btn');
+    
+    if (generatePlanBtn) {
+        generatePlanBtn.addEventListener('click', generateTestPlan);
+    }
+    if (approvePlanBtn) {
+        approvePlanBtn.addEventListener('click', approveTestPlan);
+    }
+    if (rejectPlanBtn) {
+        rejectPlanBtn.addEventListener('click', rejectTestPlan);
+    }
+    
+    // Initialize AI Test Designer
+    initAiTestDesigner();
+    
     if (addAppBtn) {
         addAppBtn.addEventListener('click', addApp);
     }
@@ -3332,12 +3350,52 @@ document.addEventListener('DOMContentLoaded', () => {
         saveScenarioBtn.addEventListener('click', saveScenario);
     }
     
-    if (appsTabBtn) {
-        appsTabBtn.addEventListener('click', () => {
-            loadApps();
-            loadScenarios();
-            checkWinAppDriverStatus();
+    // Real-time validation: remove red border when user types/selects
+    const nameInput = document.getElementById('scenario-name');
+    const appSelect = document.getElementById('scenario-app');
+    if (nameInput) {
+        nameInput.addEventListener('input', () => {
+            if (nameInput.value.trim()) {
+                nameInput.classList.remove('required-field');
+                nameInput.classList.add('valid-field');
+            } else {
+                nameInput.classList.remove('valid-field');
+            }
         });
+    }
+    if (appSelect) {
+        appSelect.addEventListener('change', () => {
+            if (appSelect.value) {
+                appSelect.classList.remove('required-field');
+                appSelect.classList.add('valid-field');
+            } else {
+                appSelect.classList.remove('valid-field');
+            }
+        });
+    }
+    
+    if (appsTabBtn) {
+        appsTabBtn.addEventListener('click', async () => {
+            await loadApps();
+            await loadScenarios();
+            checkWinAppDriverStatus();
+            await initInspector();
+        });
+    }
+    
+    // WinAppDriver control buttons
+    const wadStartBtn = document.getElementById('wad-start-btn');
+    const wadStopBtn = document.getElementById('wad-stop-btn');
+    const wadInstallBtn = document.getElementById('wad-install-btn');
+    
+    if (wadStartBtn) {
+        wadStartBtn.addEventListener('click', startWinAppDriver);
+    }
+    if (wadStopBtn) {
+        wadStopBtn.addEventListener('click', stopWinAppDriver);
+    }
+    if (wadInstallBtn) {
+        wadInstallBtn.addEventListener('click', openWinAppDriverDownload);
     }
 });
 
@@ -3490,6 +3548,11 @@ let currentScenarioSteps = [];
 // Check WinAppDriver status
 async function checkWinAppDriverStatus() {
     const statusEl = document.getElementById('winappdriver-status');
+    const startBtn = document.getElementById('wad-start-btn');
+    const stopBtn = document.getElementById('wad-stop-btn');
+    const installBtn = document.getElementById('wad-install-btn');
+    const infoEl = document.getElementById('wad-info');
+    
     if (!statusEl) return;
     
     try {
@@ -3499,14 +3562,121 @@ async function checkWinAppDriverStatus() {
         if (data.running) {
             statusEl.className = 'status-badge status-success';
             statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> WinAppDriver actief';
+            if (startBtn) startBtn.style.display = 'none';
+            if (stopBtn) stopBtn.style.display = 'inline-flex';
+            if (installBtn) installBtn.style.display = 'none';
+            if (infoEl) infoEl.textContent = data.path 
+                ? `✅ WinAppDriver draait. Je kunt nu apps testen! (${data.path})`
+                : '✅ WinAppDriver draait. Je kunt nu apps testen!';
         } else {
             statusEl.className = 'status-badge status-warning';
-            statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> WinAppDriver niet bereikbaar. Start: WinAppDriver.exe';
+            statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> WinAppDriver niet bereikbaar';
+            if (startBtn) startBtn.style.display = data.installed ? 'inline-flex' : 'none';
+            if (stopBtn) stopBtn.style.display = 'none';
+            if (installBtn) installBtn.style.display = data.installed ? 'none' : 'inline-flex';
+            if (infoEl) infoEl.textContent = data.installed 
+                ? '⚠️ WinAppDriver is geïnstalleerd maar niet gestart. Klik "Start WinAppDriver" om het te starten.'
+                : '❌ WinAppDriver is niet geïnstalleerd. Installeer het eerst.';
         }
     } catch (error) {
         statusEl.className = 'status-badge status-danger';
-        statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> WinAppDriver niet bereikbaar';
+        statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Server fout';
+        if (startBtn) startBtn.style.display = 'none';
+        if (stopBtn) stopBtn.style.display = 'none';
+        if (installBtn) installBtn.style.display = 'none';
+        if (infoEl) infoEl.textContent = '❌ Kan geen verbinding maken met de server. Controleer of de Node.js server draait.';
     }
+}
+
+// Start WinAppDriver
+async function startWinAppDriver() {
+    const startBtn = document.getElementById('wad-start-btn');
+    const statusEl = document.getElementById('winappdriver-status');
+    
+    if (startBtn) {
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starten...';
+    }
+    
+    if (statusEl) {
+        statusEl.className = 'status-badge status-warning';
+        statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> WinAppDriver starten...';
+    }
+    
+    try {
+        const response = await fetch('/api/winappdriver-start', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            // Poll status tot het actief is
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkInterval = setInterval(async () => {
+                attempts++;
+                await checkWinAppDriverStatus();
+                
+                const statusResponse = await fetch('/api/winappdriver-status');
+                const statusData = await statusResponse.json();
+                
+                if (statusData.running || attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    if (startBtn) {
+                        startBtn.disabled = false;
+                        startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Start WinAppDriver';
+                    }
+                }
+            }, 1000);
+        } else {
+            throw new Error(result.error || 'Starten mislukt');
+        }
+    } catch (error) {
+        if (statusEl) {
+            statusEl.className = 'status-badge status-danger';
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Fout: ${error.message}`;
+        }
+        if (startBtn) {
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Start WinAppDriver';
+        }
+    }
+}
+
+// Stop WinAppDriver
+async function stopWinAppDriver() {
+    const stopBtn = document.getElementById('wad-stop-btn');
+    const statusEl = document.getElementById('winappdriver-status');
+    
+    if (stopBtn) {
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Stoppen...';
+    }
+    
+    try {
+        await fetch('/api/winappdriver-stop', { method: 'POST' });
+        
+        await new Promise(r => setTimeout(r, 1000));
+        await checkWinAppDriverStatus();
+        
+        if (stopBtn) {
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
+        }
+    } catch (error) {
+        if (statusEl) {
+            statusEl.className = 'status-badge status-danger';
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> Fout: ${error.message}`;
+        }
+        if (stopBtn) {
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
+        }
+    }
+}
+
+// Open WinAppDriver download page
+function openWinAppDriverDownload() {
+    window.open('https://github.com/microsoft/WinAppDriver/releases', '_blank');
 }
 
 // Load apps list
@@ -3548,6 +3718,13 @@ async function loadApps() {
         // Update scenario dropdown
         if (scenarioSelect) {
             scenarioSelect.innerHTML = '<option value="">-- Kies een applicatie --</option>' +
+                apps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
+        }
+        
+        // Update AI test designer dropdown
+        const aiTestAppSelect = document.getElementById('ai-test-app');
+        if (aiTestAppSelect) {
+            aiTestAppSelect.innerHTML = '<option value="">-- Kies een applicatie --</option>' +
                 apps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
         }
     } catch (error) {
@@ -3611,14 +3788,32 @@ async function deleteApp(id) {
 function updateStepFormUI() {
     const action = document.getElementById('step-action').value;
     
-    document.getElementById('step-target-group').style.display = 
-        ['click', 'type', 'verify'].includes(action) ? 'block' : 'none';
-    document.getElementById('step-text-group').style.display = 
-        action === 'type' ? 'block' : 'none';
-    document.getElementById('step-duration-group').style.display = 
-        action === 'wait' ? 'block' : 'none';
-    document.getElementById('step-key-group').style.display = 
-        action === 'key' ? 'block' : 'none';
+    // Target field - needed for most actions
+    const needsTarget = ['click', 'doubleclick', 'rightclick', 'hover', 'type', 'verify', 'verifyText', 'verifyValue', 'verifyProperty', 'focus', 'getText', 'waitForElement'].includes(action);
+    document.getElementById('step-target-group').style.display = needsTarget ? 'block' : 'none';
+    
+    // Text input field
+    document.getElementById('step-text-group').style.display = action === 'type' ? 'block' : 'none';
+    
+    // Duration field
+    document.getElementById('step-duration-group').style.display = ['wait', 'waitForElement'].includes(action) ? 'block' : 'none';
+    
+    // Key field
+    document.getElementById('step-key-group').style.display = action === 'key' ? 'block' : 'none';
+    
+    // Expected value field (for verifyText, verifyValue)
+    const needsExpected = ['verifyText', 'verifyValue'].includes(action);
+    document.getElementById('step-expected-group').style.display = needsExpected ? 'block' : 'none';
+    
+    // Match mode field (for verifyText)
+    document.getElementById('step-match-group').style.display = action === 'verifyText' ? 'block' : 'none';
+    
+    // Property field (for verifyProperty)
+    document.getElementById('step-property-group').style.display = action === 'verifyProperty' ? 'block' : 'none';
+    
+    // Critical checkbox (for all verify actions)
+    const isVerify = ['verify', 'verifyText', 'verifyValue', 'verifyProperty'].includes(action);
+    document.getElementById('step-critical-group').style.display = isVerify ? 'block' : 'none';
 }
 
 // Add step to scenario
@@ -3629,6 +3824,10 @@ function addScenarioStep() {
     const duration = document.getElementById('step-duration').value;
     const key = document.getElementById('step-key').value;
     const by = document.getElementById('step-by').value;
+    const expected = document.getElementById('step-expected').value.trim();
+    const match = document.getElementById('step-match').value;
+    const property = document.getElementById('step-property').value;
+    const critical = document.getElementById('step-critical').checked;
     
     const step = { action, by };
     
@@ -3636,6 +3835,10 @@ function addScenarioStep() {
     if (text) step.text = text;
     if (duration) step.duration = parseInt(duration);
     if (key) step.key = key;
+    if (expected) step.expected = expected;
+    if (match) step.match = match;
+    if (property) step.property = property;
+    if (critical !== undefined) step.critical = critical;
     
     currentScenarioSteps.push(step);
     renderStepsList();
@@ -3643,6 +3846,7 @@ function addScenarioStep() {
     // Clear inputs
     document.getElementById('step-target').value = '';
     document.getElementById('step-text').value = '';
+    document.getElementById('step-expected').value = '';
 }
 
 // Remove step from scenario
@@ -3661,28 +3865,60 @@ function renderStepsList() {
         return;
     }
     
-    listEl.innerHTML = currentScenarioSteps.map((step, index) => `
-        <div class="step-item">
+    listEl.innerHTML = currentScenarioSteps.map((step, index) => {
+        let extraInfo = '';
+        if (step.text) extraInfo += `<span class="step-text">"${step.text}"</span>`;
+        if (step.duration) extraInfo += `<span class="step-duration">${step.duration}ms</span>`;
+        if (step.key) extraInfo += `<span class="step-key">[${step.key}]</span>`;
+        if (step.expected) extraInfo += `<span class="step-expected">verwacht: "${step.expected}"</span>`;
+        if (step.match && step.match !== 'equals') extraInfo += `<span class="step-match">(${step.match})</span>`;
+        if (step.property) extraInfo += `<span class="step-property">${step.property}</span>`;
+        if (step.critical === false) extraInfo += `<span class="step-warn-only">⚠️ waarschuwing</span>`;
+        
+        return `
+        <div class="step-item ${['verifyText', 'verifyValue', 'verifyProperty'].includes(step.action) ? 'step-verify' : ''}">
             <span class="step-number">${index + 1}</span>
             <span class="step-action">${step.action}</span>
             ${step.target ? `<span class="step-target">${step.target}</span>` : ''}
-            ${step.text ? `<span class="step-text">"${step.text}"</span>` : ''}
-            ${step.duration ? `<span class="step-duration">${step.duration}ms</span>` : ''}
-            ${step.key ? `<span class="step-key">[${step.key}]</span>` : ''}
+            ${extraInfo}
             <button class="btn btn-danger btn-xs" onclick="removeStep(${index})" title="Verwijderen">
                 <i class="fa-solid fa-xmark"></i>
             </button>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // Save scenario
 async function saveScenario() {
-    const name = document.getElementById('scenario-name').value.trim();
-    const appId = document.getElementById('scenario-app').value;
+    const nameInput = document.getElementById('scenario-name');
+    const appSelect = document.getElementById('scenario-app');
+    const name = nameInput.value.trim();
+    const appId = appSelect.value;
     
-    if (!name || !appId) {
-        alert('Scenario naam en applicatie zijn verplicht!');
+    // Reset styling
+    nameInput.classList.remove('required-field', 'valid-field');
+    appSelect.classList.remove('required-field', 'valid-field');
+    
+    let hasError = false;
+    
+    if (!name) {
+        nameInput.classList.add('required-field');
+        nameInput.focus();
+        hasError = true;
+    } else {
+        nameInput.classList.add('valid-field');
+    }
+    
+    if (!appId) {
+        appSelect.classList.add('required-field');
+        if (!hasError) appSelect.focus();
+        hasError = true;
+    } else {
+        appSelect.classList.add('valid-field');
+    }
+    
+    if (hasError) {
+        alert('Vul de verplichte velden in (gemarkeerd met een rode rand).');
         return;
     }
     
@@ -3703,6 +3939,8 @@ async function saveScenario() {
         if (result.success) {
             document.getElementById('scenario-name').value = '';
             document.getElementById('scenario-app').value = '';
+            document.getElementById('scenario-name').classList.remove('valid-field');
+            document.getElementById('scenario-app').classList.remove('valid-field');
             currentScenarioSteps = [];
             renderStepsList();
             loadScenarios();
@@ -3777,11 +4015,19 @@ async function runScenario(id) {
         if (result.success === false) {
             alert('Scenario mislukt: ' + (result.error || 'Onbekende fout'));
         } else {
-            const stepResults = result.steps.map(s => 
-                `${s.action}: ${s.success ? '✅' : '❌'} ${s.message}`
-            ).join('\n');
-            
-            alert(`Scenario uitgevoerd!\n\n${stepResults}`);
+const stepResults = result.steps.map(s => {
+            const icon = s.warning ? '⚠️' : (s.success ? '✅' : '❌');
+            return `${s.action}: ${icon} ${s.message}`;
+        }).join('\n');
+        
+        const hasWarnings = result.steps.some(s => s.warning);
+        const hasFailures = result.steps.some(s => !s.success && !s.warning);
+        
+        let title = 'Scenario uitgevoerd!';
+        if (hasFailures) title = 'Scenario MISLUKT!';
+        else if (hasWarnings) title = 'Scenario uitgevoerd met waarschuwingen';
+        
+        alert(`${title}\n\n${stepResults}`);
             
             // Show screenshots if any
             const screenshots = result.steps.filter(s => s.screenshot);
@@ -3814,3 +4060,1028 @@ async function deleteScenario(id) {
 socket.on('app-test-step', (data) => {
     console.log('App test step:', data);
 });
+
+// ============================================
+// AI TEST DESIGNER FUNCTIES - ENHANCED
+// ============================================
+
+let currentTestPlan = null;
+let currentScreenshotBase64 = null;
+
+// Initialize AI Test Designer
+function initAiTestDesigner() {
+    // Screenshot upload
+    const screenshotInput = document.getElementById('ai-test-screenshot');
+    const clearScreenshotBtn = document.getElementById('clear-screenshot-btn');
+    
+    if (screenshotInput) {
+        screenshotInput.addEventListener('change', handleScreenshotUpload);
+    }
+    
+    if (clearScreenshotBtn) {
+        clearScreenshotBtn.addEventListener('click', clearScreenshot);
+    }
+    
+    // Add step button in review
+    const addStepBtn = document.getElementById('add-step-btn-review');
+    if (addStepBtn) {
+        addStepBtn.addEventListener('click', addStepToReview);
+    }
+    
+    // Refresh models button
+    const refreshModelsBtn = document.getElementById('ai-test-refresh-models');
+    if (refreshModelsBtn) {
+        refreshModelsBtn.addEventListener('click', loadAiTestModels);
+    }
+    
+    // Load models on init
+    loadAiTestModels();
+}
+
+// Load available AI models for Test Designer
+async function loadAiTestModels() {
+    const modelSelect = document.getElementById('ai-test-model');
+    const providerBadge = document.getElementById('ai-test-provider-badge');
+    const hint = document.getElementById('ai-test-model-hint');
+    
+    if (!modelSelect) return;
+    
+    modelSelect.innerHTML = '<option value="">Modellen laden...</option>';
+    
+    try {
+        // Get AI config to show provider
+        const configResponse = await fetch('/api/ai-config');
+        const config = await configResponse.json();
+        
+        const provider = config.provider || 'none';
+        const providerNames = {
+            openai: 'OpenAI',
+            azure: 'Azure',
+            claude: 'Claude',
+            grok: 'Grok',
+            ollama: 'Ollama'
+        };
+        
+        if (providerBadge) {
+            providerBadge.textContent = providerNames[provider] || provider;
+            providerBadge.className = 'provider-badge ' + provider;
+        }
+        
+        // Check if we have a valid connection
+        const hasKey = config.apiKey && !config.apiKey.startsWith('••••') && config.apiKey.length > 0;
+        const isOllama = provider === 'ollama';
+        
+        if (!isOllama && !hasKey) {
+            modelSelect.innerHTML = '<option value="">Geen API key geconfigureerd</option>';
+            if (hint) hint.textContent = 'Ga naar AI Agent tab om een provider te configureren';
+            return;
+        }
+        
+        // Fetch models
+        const modelsResponse = await fetch('/api/ai-models');
+        
+        if (!modelsResponse.ok) {
+            const error = await modelsResponse.json();
+            throw new Error(error.error || 'Fout bij ophalen modellen');
+        }
+        
+        const models = await modelsResponse.json();
+        
+        // Populate dropdown
+        modelSelect.innerHTML = '<option value="">-- Kies een model --</option>';
+        
+        if (Array.isArray(models) && models.length > 0) {
+            models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id || model;
+                option.textContent = model.name || model.id || model;
+                modelSelect.appendChild(option);
+            });
+            
+            // Select configured model if available
+            if (config.model) {
+                modelSelect.value = config.model;
+            }
+            
+            if (hint) hint.textContent = `${models.length} modellen beschikbaar via ${providerNames[provider] || provider}`;
+        } else {
+            // Fallback: use configured model
+            modelSelect.innerHTML = `<option value="${config.model || ''}">${config.model || 'Standaard model'}</option>
+            `;
+            if (hint) hint.textContent = 'Gebruik het geconfigureerde model';
+        }
+        
+    } catch (error) {
+        console.error('Fout bij laden AI modellen:', error);
+        modelSelect.innerHTML = '<option value="">Fout bij laden modellen</option>';
+        if (hint) hint.textContent = 'Error: ' + error.message;
+    }
+}
+
+// Handle screenshot upload
+function handleScreenshotUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        currentScreenshotBase64 = event.target.result;
+        
+        const preview = document.getElementById('screenshot-preview');
+        const display = document.getElementById('screenshot-display');
+        const clearBtn = document.getElementById('clear-screenshot-btn');
+        
+        preview.src = currentScreenshotBase64;
+        preview.style.display = 'block';
+        display.style.display = 'none';
+        clearBtn.style.display = 'inline-flex';
+    };
+    reader.readAsDataURL(file);
+}
+
+// Clear screenshot
+function clearScreenshot() {
+    currentScreenshotBase64 = null;
+    
+    const input = document.getElementById('ai-test-screenshot');
+    const preview = document.getElementById('screenshot-preview');
+    const display = document.getElementById('screenshot-display');
+    const clearBtn = document.getElementById('clear-screenshot-btn');
+    
+    input.value = '';
+    preview.style.display = 'none';
+    display.style.display = 'flex';
+    clearBtn.style.display = 'none';
+}
+
+// Generate test plan from natural language description
+async function generateTestPlan() {
+    const description = document.getElementById('ai-test-description').value.trim();
+    const appId = document.getElementById('ai-test-app').value;
+    const model = document.getElementById('ai-test-model').value;
+    
+    if (!description) {
+        alert('Beschrijf eerst wat je wilt testen!');
+        return;
+    }
+    if (!appId) {
+        alert('Kies eerst een applicatie!');
+        return;
+    }
+    
+    const btn = document.getElementById('generate-test-plan-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Plan aan het maken...';
+    
+    try {
+        // Get app info
+        const appsResponse = await fetch('/api/apps');
+        const apps = await appsResponse.json();
+        const app = apps.find(a => a.id === appId);
+        
+        if (!app) {
+            throw new Error('Applicatie niet gevonden');
+        }
+        
+        // Generate plan based on model
+        let plan;
+        if (model === 'local') {
+            plan = await createTestPlanFromDescription(description, app);
+        } else {
+            // Try AI API first
+            try {
+                const aiResponse = await fetch('/api/generate-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description, app, model })
+                });
+                
+                if (aiResponse.ok) {
+                    const aiResult = await aiResponse.json();
+                    plan = aiResult.plan;
+                } else {
+                    // Fallback to local parser silently
+                    plan = await createTestPlanFromDescription(description, app);
+                }
+            } catch (error) {
+                // Fallback to local parser silently
+                plan = await createTestPlanFromDescription(description, app);
+            }
+        }
+        
+        currentTestPlan = plan;
+        
+        // Show plan for review with editable steps
+        renderEditableTestPlan(plan);
+        
+        document.getElementById('test-plan-review').style.display = 'block';
+        document.getElementById('test-plan-result').style.display = 'none';
+        
+    } catch (error) {
+        alert('Fout bij genereren plan: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Genereer Test Plan';
+    }
+}
+
+// Render editable test plan
+function renderEditableTestPlan(plan) {
+    // Update header info
+    document.getElementById('plan-app-name').textContent = plan.appName;
+    document.getElementById('plan-description').textContent = plan.description;
+    document.getElementById('plan-step-count').textContent = `${plan.steps.length} stappen`;
+    
+    // Render editable steps
+    const container = document.getElementById('test-plan-steps-container');
+    container.innerHTML = plan.steps.map((step, index) => `
+        <div class="step-edit-item" data-step-index="${index}">
+            <div class="step-number">${index + 1}</div>
+            <div class="step-fields">
+                <div class="step-field-row">
+                    <label>Actie:</label>
+                    <select class="step-action-select" data-field="action">
+                        ${getActionOptions(step.action)}
+                    </select>
+                </div>
+                <div class="step-field-row">
+                    <label>Target:</label>
+                    <input type="text" class="step-target-input" data-field="target" 
+                        value="${step.target || ''}" placeholder="Element naam of ID">
+                </div>
+                <div class="step-field-row">
+                    <label>Waarde:</label>
+                    <input type="text" class="step-value-input" data-field="value" 
+                        value="${step.value || ''}" placeholder="Tekst, toets, of duur">
+                </div>
+                <div class="step-field-row">
+                    <label>By:</label>
+                    <select class="step-by-select" data-field="by">
+                        <option value="name" ${step.by === 'name' ? 'selected' : ''}>Naam</option>
+                        <option value="accessibility id" ${step.by === 'accessibility id' ? 'selected' : ''}>Accessibility ID</option>
+                        <option value="class name" ${step.by === 'class name' ? 'selected' : ''}>Class Name</option>
+                        <option value="xpath" ${step.by === 'xpath' ? 'selected' : ''}>XPath</option>
+                    </select>
+                </div>
+                <div class="step-field-row">
+                    <label>Omschrijving:</label>
+                    <input type="text" class="step-desc-input" data-field="description" 
+                        value="${step.description || ''}" placeholder="Wat doet deze stap?">
+                </div>
+            </div>
+            <div class="step-actions">
+                <button class="move-up" onclick="moveStep(${index}, -1)" title="Omhoog"><i class="fa-solid fa-arrow-up"></i></button>
+                <button class="move-down" onclick="moveStep(${index}, 1)" title="Omlaag"><i class="fa-solid fa-arrow-down"></i></button>
+                <button class="delete-step" onclick="deleteStepFromReview(${index})" title="Verwijder"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add event listeners to inputs
+    container.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('change', updateStepFromEdit);
+    });
+}
+
+// Get action options for select
+function getActionOptions(selected) {
+    const actions = [
+        { value: 'start', label: 'Start applicatie' },
+        { value: 'wait', label: 'Wacht' },
+        { value: 'click', label: 'Klik' },
+        { value: 'doubleclick', label: 'Dubbelklik' },
+        { value: 'rightclick', label: 'Rechtsklik' },
+        { value: 'hover', label: 'Hover' },
+        { value: 'type', label: 'Typ tekst' },
+        { value: 'key', label: 'Toets indrukken' },
+        { value: 'focus', label: 'Focus element' },
+        { value: 'getText', label: 'Haal tekst op' },
+        { value: 'screenshot', label: 'Screenshot' },
+        { value: 'verify', label: 'Verifieer element' },
+        { value: 'waitForElement', label: 'Wacht op element' },
+        { value: 'close', label: 'Sluit applicatie' }
+    ];
+    
+    return actions.map(a => 
+        `<option value="${a.value}" ${a.value === selected ? 'selected' : ''}>${a.label}</option>`
+    ).join('');
+}
+
+// Update step from edit
+function updateStepFromEdit(e) {
+    const field = e.target.dataset.field;
+    const stepItem = e.target.closest('.step-edit-item');
+    const index = parseInt(stepItem.dataset.stepIndex);
+    
+    if (currentTestPlan && currentTestPlan.steps[index]) {
+        currentTestPlan.steps[index][field] = e.target.value;
+    }
+}
+
+// Move step in review
+function moveStep(index, direction) {
+    if (!currentTestPlan) return;
+    
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= currentTestPlan.steps.length) return;
+    
+    // Swap steps
+    [currentTestPlan.steps[index], currentTestPlan.steps[newIndex]] = 
+    [currentTestPlan.steps[newIndex], currentTestPlan.steps[index]];
+    
+    // Re-render
+    renderEditableTestPlan(currentTestPlan);
+}
+
+// Delete step from review
+function deleteStepFromReview(index) {
+    if (!currentTestPlan) return;
+    
+    currentTestPlan.steps.splice(index, 1);
+    renderEditableTestPlan(currentTestPlan);
+}
+
+// Add step to review
+function addStepToReview() {
+    if (!currentTestPlan) return;
+    
+    currentTestPlan.steps.push({
+        action: 'wait',
+        description: 'Nieuwe stap',
+        target: '',
+        by: 'name',
+        value: '1000'
+    });
+    
+    renderEditableTestPlan(currentTestPlan);
+}
+
+// Create test plan from description (local parser)
+async function createTestPlanFromDescription(description, app) {
+    // Simple keyword-based plan generation
+    const steps = [];
+    const lowerDesc = description.toLowerCase();
+    
+    // Always start with opening the app
+    steps.push({
+        action: 'start',
+        description: `Start ${app.name}`,
+        target: '',
+        value: ''
+    });
+    
+    steps.push({
+        action: 'wait',
+        description: 'Wacht tot applicatie geladen is',
+        target: '',
+        value: '2000'
+    });
+    
+    // Parse description for actions
+    const sentences = description.split(/[,;.]+/).map(s => s.trim()).filter(s => s);
+    
+    for (const sentence of sentences) {
+        const lower = sentence.toLowerCase();
+        
+        // Type text
+        if (lower.includes('type') || lower.includes('typ') || lower.includes('voer in') || lower.includes('invullen')) {
+            const textMatch = sentence.match(/["'](.+?)["']/) || sentence.match(/type\s+(.+?)(?:\s+in|$)/i);
+            const text = textMatch ? textMatch[1] : 'Test tekst';
+            
+            // Try to find target field
+            let target = '';
+            let by = 'name';
+            
+            if (lower.includes('document') || lower.includes('tekst') || lower.includes('veld')) {
+                target = 'Naamloos';
+            }
+            
+            steps.push({
+                action: 'type',
+                description: `Type "${text}"${target ? ` in ${target}` : ''}`,
+                target: target,
+                by: by,
+                value: text
+            });
+        }
+        
+        // Click
+        else if (lower.includes('klik') || lower.includes('click') || lower.includes('druk op')) {
+            const buttonMatch = sentence.match(/(?:klik|click|druk op)\s+(?:op\s+)?["']?(.+?)["']?(?:\s+knop|\s+button|$)/i);
+            const target = buttonMatch ? buttonMatch[1] : '';
+            
+            if (target) {
+                steps.push({
+                    action: 'click',
+                    description: `Klik op "${target}"`,
+                    target: target,
+                    by: 'name',
+                    value: ''
+                });
+            }
+        }
+        
+        // Save
+        else if (lower.includes('sla op') || lower.includes('opslaan') || lower.includes('save')) {
+            steps.push({
+                action: 'key',
+                description: 'Druk Ctrl+S om op te slaan',
+                target: '',
+                value: 'ctrl+s'
+            });
+            
+            steps.push({
+                action: 'wait',
+                description: 'Wacht op opslaan dialog',
+                target: '',
+                value: '1000'
+            });
+            
+            // If filename specified
+            const filenameMatch = sentence.match(/(?:als|as)\s+["']?(.+?)["']?$/i);
+            if (filenameMatch) {
+                steps.push({
+                    action: 'type',
+                    description: `Typ bestandsnaam "${filenameMatch[1]}"`,
+                    target: '',
+                    by: 'name',
+                    value: filenameMatch[1]
+                });
+            }
+            
+            steps.push({
+                action: 'key',
+                description: 'Bevestig met Enter',
+                target: '',
+                value: 'Enter'
+            });
+        }
+        
+        // Screenshot
+        else if (lower.includes('screenshot') || lower.includes('schermafbeelding')) {
+            steps.push({
+                action: 'screenshot',
+                description: 'Maak screenshot',
+                target: '',
+                value: ''
+            });
+        }
+        
+        // Wait
+        else if (lower.includes('wacht')) {
+            const durationMatch = sentence.match(/(\d+)\s*(?:s|sec|seconden|ms|milliseconden)/);
+            const duration = durationMatch ? parseInt(durationMatch[1]) * (sentence.includes('ms') ? 1 : 1000) : 1000;
+            
+            steps.push({
+                action: 'wait',
+                description: `Wacht ${duration}ms`,
+                target: '',
+                value: duration.toString()
+            });
+        }
+    }
+    
+    // Always close at the end if mentioned
+    if (lowerDesc.includes('sluit') || lowerDesc.includes('close') || lowerDesc.includes('afsluiten')) {
+        steps.push({
+            action: 'wait',
+            description: 'Wacht even voor afsluiten',
+            target: '',
+            value: '1000'
+        });
+        
+        steps.push({
+            action: 'close',
+            description: `Sluit ${app.name}`,
+            target: '',
+            value: ''
+        });
+    }
+    
+    return {
+        name: `AI: ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`,
+        description: description,
+        appId: app.id,
+        appName: app.name,
+        steps: steps
+    };
+}
+
+// Approve test plan and execute
+async function approveTestPlan() {
+    if (!currentTestPlan) return;
+    
+    const btn = document.getElementById('approve-test-plan-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Test uitvoeren...';
+    
+    try {
+        // Save scenario
+        const response = await fetch('/api/app-scenarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: currentTestPlan.name,
+                appId: currentTestPlan.appId,
+                steps: currentTestPlan.steps
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Run the scenario
+            const runResponse = await fetch(`/api/app-scenarios/${result.id}/run`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const runResult = await runResponse.json();
+            
+            // Show result
+            renderTestPlanResult(runResult);
+            
+            document.getElementById('test-plan-result').style.display = 'block';
+            document.getElementById('test-plan-review').style.display = 'none';
+            
+            // Reload scenarios list
+            loadScenarios();
+        } else {
+            alert('Fout bij opslaan: ' + result.error);
+        }
+    } catch (error) {
+        alert('Fout: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> Akkoord - Voer Uit';
+    }
+}
+
+// Render test execution result
+function renderTestPlanResult(result) {
+    const content = document.getElementById('test-plan-result-content');
+    
+    // Handle error case
+    if (!result || !result.steps) {
+        content.innerHTML = `
+            <div class="test-result-summary error">
+                <h5>❌ Fout bij uitvoeren test</h5>
+                <p>${result?.error || 'Onbekende fout'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const allSuccess = result.steps.every(s => s.success);
+    const statusIcon = allSuccess ? '✅' : '⚠️';
+    const statusClass = allSuccess ? 'success' : 'warning';
+    
+    content.innerHTML = `
+        <div class="test-result-summary ${statusClass}">
+            <h5>${statusIcon} ${result.scenarioName || 'Test'}</h5>
+            <p>Applicatie: ${result.appName || 'Onbekend'}</p>
+            <p>Resultaat: ${allSuccess ? 'Alle stappen succesvol!' : 'Sommige stappen mislukt'}</p>
+        </div>
+        <div class="test-result-steps">
+            <ol>
+                ${result.steps.map(step => `
+                    <li class="${step.success ? 'success' : 'error'}">
+                        <span class="step-status">${step.success ? '✅' : '❌'}</span>
+                        <span class="step-action">${step.action}</span>
+                        <span class="step-message">${step.message || ''}</span>
+                    </li>
+                `).join('')}
+            </ol>
+        </div>
+    `;
+}
+
+// Reject test plan and edit description
+function rejectTestPlan() {
+    document.getElementById('test-plan-review').style.display = 'none';
+    document.getElementById('test-plan-result').style.display = 'none';
+    currentTestPlan = null;
+    
+    // Focus on description
+    document.getElementById('ai-test-description').focus();
+}
+
+// ============================================
+// ELEMENT INSPECTOR FUNCTIES
+// ============================================
+
+let currentInspectorSession = null;
+let inspectorElements = [];
+
+// Initialize inspector when apps tab is opened
+async function initInspector() {
+    const inspectorAppSelect = document.getElementById('inspector-app');
+    
+    // Load apps directly for inspector dropdown
+    if (inspectorAppSelect) {
+        try {
+            const response = await fetch('/api/apps');
+            const apps = await response.json();
+            inspectorAppSelect.innerHTML = '<option value="">-- Kies een applicatie --</option>' +
+                apps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
+        } catch (error) {
+            console.error('Fout bij laden apps voor inspector:', error);
+        }
+    }
+    
+    // Bind inspector buttons (only once to avoid duplicate listeners)
+    const startBtn = document.getElementById('inspector-start-btn');
+    const refreshBtn = document.getElementById('inspector-refresh-btn');
+    const screenshotBtn = document.getElementById('inspector-screenshot-btn');
+    const stopBtn = document.getElementById('inspector-stop-btn');
+    
+    if (startBtn && !startBtn._bound) {
+        startBtn.addEventListener('click', startInspector);
+        startBtn._bound = true;
+    }
+    if (refreshBtn && !refreshBtn._bound) {
+        refreshBtn.addEventListener('click', refreshInspector);
+        refreshBtn._bound = true;
+    }
+    if (screenshotBtn && !screenshotBtn._bound) {
+        screenshotBtn.addEventListener('click', takeInspectorScreenshot);
+        screenshotBtn._bound = true;
+    }
+    if (stopBtn && !stopBtn._bound) {
+        stopBtn.addEventListener('click', stopInspector);
+        stopBtn._bound = true;
+    }
+    
+    // Bind inspector tabs (only once)
+    document.querySelectorAll('.inspector-tab-btn').forEach(btn => {
+        if (!btn._bound) {
+            btn.addEventListener('click', (e) => {
+                const tab = e.target.dataset.inspectorTab;
+                switchInspectorTab(tab);
+            });
+            btn._bound = true;
+        }
+    });
+    
+    // Bind filter
+    const filterInput = document.getElementById('inspector-filter');
+    if (filterInput && !filterInput._bound) {
+        filterInput.addEventListener('input', (e) => {
+            filterInspectorElements(e.target.value);
+        });
+        filterInput._bound = true;
+    }
+    
+    // Bind expand/collapse
+    const expandBtn = document.getElementById('inspector-expand-all');
+    const collapseBtn = document.getElementById('inspector-collapse-all');
+    if (expandBtn && !expandBtn._bound) {
+        expandBtn.addEventListener('click', () => {
+            document.querySelectorAll('.inspector-element').forEach(el => el.classList.remove('collapsed'));
+            document.querySelectorAll('.inspector-toggle').forEach(el => el.classList.remove('collapsed'));
+        });
+        expandBtn._bound = true;
+    }
+    if (collapseBtn && !collapseBtn._bound) {
+        collapseBtn.addEventListener('click', () => {
+            document.querySelectorAll('.inspector-element').forEach(el => el.classList.add('collapsed'));
+            document.querySelectorAll('.inspector-toggle').forEach(el => el.classList.add('collapsed'));
+        });
+        collapseBtn._bound = true;
+    }
+}
+
+// Switch inspector tab
+function switchInspectorTab(tabName) {
+    document.querySelectorAll('.inspector-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.inspectorTab === tabName);
+    });
+    document.querySelectorAll('.inspector-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `inspector-${tabName}-tab`);
+    });
+}
+
+// Start inspector session
+async function startInspector() {
+    const appId = document.getElementById('inspector-app').value;
+    if (!appId) {
+        alert('Kies eerst een applicatie!');
+        return;
+    }
+    
+    updateInspectorStatus('starten...', 'warning');
+    
+    try {
+        const response = await fetch('/api/inspector/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ appId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            currentInspectorSession = { appId, sessionId: result.sessionId };
+            updateInspectorStatus('actief - elementen laden...', 'success');
+            
+            // Enable buttons
+            document.getElementById('inspector-refresh-btn').disabled = false;
+            document.getElementById('inspector-screenshot-btn').disabled = false;
+            document.getElementById('inspector-stop-btn').disabled = false;
+            document.getElementById('inspector-start-btn').disabled = true;
+            
+            // Show results panel
+            document.getElementById('inspector-results').style.display = 'block';
+            
+            // Load elements
+            await refreshInspector();
+        } else {
+            updateInspectorStatus('fout: ' + result.error, 'danger');
+        }
+    } catch (error) {
+        updateInspectorStatus('fout: ' + error.message, 'danger');
+    }
+}
+
+// Refresh inspector data
+async function refreshInspector() {
+    if (!currentInspectorSession) return;
+    
+    updateInspectorStatus('vernieuwen...', 'warning');
+    
+    try {
+        // Get elements
+        const elementsResponse = await fetch(`/api/inspector/${currentInspectorSession.appId}/elements`);
+        const elementsResult = await elementsResponse.json();
+        
+        if (elementsResult.success) {
+            inspectorElements = elementsResult.elements || [];
+            renderInspectorElements(inspectorElements);
+        }
+        
+        // Get source
+        const sourceResponse = await fetch(`/api/inspector/${currentInspectorSession.appId}/source`);
+        const sourceResult = await sourceResponse.json();
+        
+        if (sourceResult.success) {
+            document.getElementById('inspector-source-code').textContent = sourceResult.source;
+        }
+        
+        updateInspectorStatus('actief - ' + inspectorElements.length + ' elementen gevonden', 'success');
+    } catch (error) {
+        updateInspectorStatus('fout bij vernieuwen: ' + error.message, 'danger');
+    }
+}
+
+// Take inspector screenshot
+async function takeInspectorScreenshot() {
+    if (!currentInspectorSession) return;
+    
+    try {
+        const response = await fetch(`/api/inspector/${currentInspectorSession.appId}/screenshot`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const container = document.getElementById('inspector-screenshot-container');
+            container.innerHTML = `<img src="${result.screenshot}" alt="Inspector Screenshot" style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border);">`;
+            
+            // Switch to screenshot tab
+            switchInspectorTab('screenshot');
+        }
+    } catch (error) {
+        console.error('Screenshot fout:', error);
+    }
+}
+
+// Stop inspector session
+async function stopInspector() {
+    if (!currentInspectorSession) return;
+    
+    try {
+        await fetch(`/api/inspector/${currentInspectorSession.appId}/stop`, { method: 'POST' });
+    } catch (e) {
+        // Ignore errors on stop
+    }
+    
+    currentInspectorSession = null;
+    inspectorElements = [];
+    
+    // Reset UI
+    document.getElementById('inspector-refresh-btn').disabled = true;
+    document.getElementById('inspector-screenshot-btn').disabled = true;
+    document.getElementById('inspector-stop-btn').disabled = true;
+    document.getElementById('inspector-start-btn').disabled = false;
+    document.getElementById('inspector-results').style.display = 'none';
+    document.getElementById('inspector-elements-tree').innerHTML = '<p class="empty-state">Start de inspector om elementen te zien.</p>';
+    document.getElementById('inspector-source-code').textContent = '';
+    document.getElementById('inspector-screenshot-container').innerHTML = '<p class="empty-state">Geen screenshot beschikbaar.</p>';
+    
+    updateInspectorStatus('gestopt', 'info');
+}
+
+// Update inspector status
+function updateInspectorStatus(message, type) {
+    const statusEl = document.getElementById('inspector-status');
+    if (!statusEl) return;
+    
+    statusEl.style.display = 'block';
+    statusEl.className = `status-badge status-${type}`;
+    
+    const icons = {
+        success: 'fa-circle-check',
+        warning: 'fa-triangle-exclamation',
+        danger: 'fa-circle-xmark',
+        info: 'fa-circle-info'
+    };
+    
+    statusEl.innerHTML = `<i class="fa-solid ${icons[type] || 'fa-circle-info'}"></i> Inspector ${message}`;
+}
+
+// Render inspector elements tree
+function renderInspectorElements(elements) {
+    const treeEl = document.getElementById('inspector-elements-tree');
+    if (!treeEl) return;
+    
+    if (elements.length === 0) {
+        treeEl.innerHTML = '<p class="empty-state">Geen elementen gevonden.</p>';
+        return;
+    }
+    
+    // Build tree structure
+    const tree = buildElementTree(elements);
+    treeEl.innerHTML = renderElementNode(tree, 0);
+    
+    // Bind click handlers
+    document.querySelectorAll('.inspector-element').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectInspectorElement(el);
+        });
+    });
+    
+    // Bind toggle handlers
+    document.querySelectorAll('.inspector-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const element = toggle.closest('.inspector-element');
+            element.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        });
+    });
+}
+
+// Build element tree from flat list
+function buildElementTree(elements) {
+    // For now, just return a simple flat structure with a root
+    return {
+        tag: 'Window',
+        text: 'Application Window',
+        attributes: {},
+        children: elements.map(el => ({
+            ...el,
+            children: []
+        }))
+    };
+}
+
+// Render a single element node
+function renderElementNode(node, depth) {
+    const hasChildren = node.children && node.children.length > 0;
+    const attrs = node.attributes || {};
+    const name = attrs.Name || node.text || '';
+    const automationId = attrs.AutomationId || '';
+    const className = attrs.ClassName || node.tag || '';
+    const controlType = attrs.LocalizedControlType || '';
+    
+    let html = `<div class="inspector-element" data-depth="${depth}" data-tag="${node.tag || ''}" data-name="${name}" data-automationid="${automationId}">`;
+    
+    html += `<div class="inspector-element-header" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">`;
+    
+    if (hasChildren) {
+        html += `<span class="inspector-toggle"><i class="fa-solid fa-chevron-down"></i></span>`;
+    } else {
+        html += `<span style="width:16px;display:inline-block;"></span>`;
+    }
+    
+    html += `<span class="inspector-element-tag">${node.tag || 'Unknown'}</span>`;
+    
+    if (name) {
+        html += `<span class="inspector-element-name">${escapeHtml(name)}</span>`;
+    }
+    
+    if (automationId) {
+        html += `<span class="inspector-element-automationid">AutomationId: ${escapeHtml(automationId)}</span>`;
+    }
+    
+    if (className && className !== node.tag) {
+        html += `<span class="inspector-element-classname">${escapeHtml(className)}</span>`;
+    }
+    
+    if (controlType) {
+        html += `<span class="inspector-element-classname">[${escapeHtml(controlType)}]</span>`;
+    }
+    
+    html += `</div>`;
+    
+    // Details panel (hidden by default)
+    html += `<div class="inspector-element-details" style="display:none;">`;
+    html += `<table>`;
+    
+    const detailAttrs = ['Name', 'AutomationId', 'ClassName', 'LocalizedControlType', 'ProcessId', 'RuntimeId'];
+    detailAttrs.forEach(attr => {
+        if (attrs[attr]) {
+            html += `<tr><td>${attr}</td><td>${escapeHtml(attrs[attr])} <button class="btn btn-sm btn-secondary copy-btn" onclick="copyToClipboard('${escapeHtml(attrs[attr]).replace(/'/g, "\\'")}')">Kopieer</button></td></tr>`;
+        }
+    });
+    
+    // Add suggested locator
+    if (automationId) {
+        html += `<tr><td>Suggested Locator</td><td><code>accessibility id: "${escapeHtml(automationId)}"</code> <button class="btn btn-sm btn-secondary copy-btn" onclick="copyToClipboard('accessibility id:${escapeHtml(automationId)}')">Kopieer</button></td></tr>`;
+    } else if (name) {
+        html += `<tr><td>Suggested Locator</td><td><code>name: "${escapeHtml(name)}"</code> <button class="btn btn-sm btn-secondary copy-btn" onclick="copyToClipboard('name:${escapeHtml(name)}')">Kopieer</button></td></tr>`;
+    }
+    
+    html += `</table>`;
+    html += `</div>`;
+    
+    // Children
+    if (hasChildren) {
+        html += `<div class="inspector-element-children">`;
+        node.children.forEach(child => {
+            html += renderElementNode(child, depth + 1);
+        });
+        html += `</div>`;
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
+// Select inspector element
+function selectInspectorElement(elementEl) {
+    // Deselect all
+    document.querySelectorAll('.inspector-element').forEach(el => el.classList.remove('selected'));
+    
+    // Select this one
+    elementEl.classList.add('selected');
+    
+    // Toggle details
+    const details = elementEl.querySelector('.inspector-element-details');
+    if (details) {
+        const isVisible = details.style.display !== 'none';
+        // Hide all other details
+        document.querySelectorAll('.inspector-element-details').forEach(d => d.style.display = 'none');
+        // Toggle this one
+        details.style.display = isVisible ? 'none' : 'block';
+    }
+}
+
+// Filter inspector elements
+function filterInspectorElements(filter) {
+    const treeEl = document.getElementById('inspector-elements-tree');
+    if (!treeEl || !filter) {
+        // Re-render all
+        renderInspectorElements(inspectorElements);
+        return;
+    }
+    
+    const lowerFilter = filter.toLowerCase();
+    const filtered = inspectorElements.filter(el => {
+        const attrs = el.attributes || {};
+        const text = (el.text || '').toLowerCase();
+        const name = (attrs.Name || '').toLowerCase();
+        const automationId = (attrs.AutomationId || '').toLowerCase();
+        const className = (attrs.ClassName || el.tag || '').toLowerCase();
+        
+        return text.includes(lowerFilter) || 
+               name.includes(lowerFilter) || 
+               automationId.includes(lowerFilter) || 
+               className.includes(lowerFilter);
+    });
+    
+    renderInspectorElements(filtered);
+}
+
+// Escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Copy to clipboard
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        // Show brief feedback
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(() => {
+            btn.textContent = originalText;
+        }, 1000);
+    } catch (err) {
+        console.error('Kopieeren mislukt:', err);
+    }
+}

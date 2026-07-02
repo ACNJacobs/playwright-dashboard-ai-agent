@@ -4639,7 +4639,8 @@ async function approveTestPlan() {
         
         if (result.success) {
             // Run the scenario
-            const runResponse = await fetch(`/api/app-scenarios/${result.id}/run`, {
+            const scenarioId = result.scenario ? result.scenario.id : result.id;
+            const runResponse = await fetch(`/api/app-scenarios/${scenarioId}/run`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });

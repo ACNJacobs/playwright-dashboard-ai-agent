@@ -111,6 +111,72 @@
         }
       ],
       "createdAt": "2026-07-02T08:44:24.770Z"
+    },
+    {
+      "id": "1782982500503",
+      "name": "AI: start notepad schrijf \"wij doen het\" sla op onder ...",
+      "appId": "1782817773710",
+      "steps": [
+        {
+          "action": "start",
+          "path": "C:\\Windows\\System32\\notepad.exe",
+          "description": "Start Notepad applicatie"
+        },
+        {
+          "action": "waitForElement",
+          "target": "Untitled - Notepad",
+          "by": "name",
+          "description": "Wacht tot Notepad venster verschijnt"
+        },
+        {
+          "action": "type",
+          "text": "wij doen het",
+          "description": "Type de tekst in het document"
+        },
+        {
+          "action": "key",
+          "key": "Ctrl+s",
+          "description": "Open het Opslaan Als dialoog venster"
+        },
+        {
+          "action": "waitForElement",
+          "target": "Save As",
+          "by": "name",
+          "description": "Wacht tot Opslaan Als venster geopend is"
+        },
+        {
+          "action": "click",
+          "target": "File name:",
+          "by": "name",
+          "description": "Klik op het bestandsnaam invoerveld"
+        },
+        {
+          "action": "key",
+          "key": "Ctrl+a",
+          "description": "Selecteer alle tekst in het veld"
+        },
+        {
+          "action": "type",
+          "text": "wijdoenhet",
+          "description": "Voer de bestandsnaam in"
+        },
+        {
+          "action": "click",
+          "target": "Save",
+          "by": "name",
+          "description": "Klik op de Opslaan knop"
+        },
+        {
+          "action": "wait",
+          "duration": 1000,
+          "description": "Wacht tot het bestand opgeslagen is"
+        },
+        {
+          "action": "close",
+          "description": "Sluit Notepad applicatie"
+        }
+      ],
+      "createdAt": "2026-07-02T08:55:00.503Z"
     }
   ]
 }

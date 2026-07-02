@@ -1,0 +1,70 @@
+{
+  "scenarioId": "1782982500503",
+  "scenarioName": "AI: start notepad schrijf \"wij doen het\" sla op onder ...",
+  "appName": "Notepad",
+  "startTime": "2026-07-02T08:55:42.832Z",
+  "steps": [
+    {
+      "action": "start",
+      "success": true,
+      "message": "Applicatie gestart"
+    },
+    {
+      "action": "waitForElement",
+      "target": "Untitled - Notepad",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "type",
+      "success": true,
+      "message": "Tekst ingevoerd in actief element"
+    },
+    {
+      "action": "key",
+      "success": true,
+      "message": "Toets Ctrl+s ingedrukt"
+    },
+    {
+      "action": "waitForElement",
+      "target": "Save As",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "click",
+      "target": "File name:",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "key",
+      "success": true,
+      "message": "Toets Ctrl+a ingedrukt"
+    },
+    {
+      "action": "type",
+      "success": true,
+      "message": "Tekst ingevoerd in actief element"
+    },
+    {
+      "action": "click",
+      "target": "Save",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "wait",
+      "success": true,
+      "message": "Gewacht 1000ms"
+    },
+    {
+      "action": "close",
+      "success": true,
+      "message": "Applicatie gesloten"
+    }
+  ],
+  "success": false,
+  "sessionId": "C78FDD6A-B015-4A62-957B-1719AFD1CEB1",
+  "endTime": "2026-07-02T08:55:50.948Z"
+}

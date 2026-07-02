@@ -1,0 +1,45 @@
+{
+  "scenarioId": "1782981855139",
+  "scenarioName": "Test Notepad",
+  "appName": "Notepad",
+  "startTime": "2026-07-02T08:55:56.518Z",
+  "steps": [
+    {
+      "action": "start",
+      "target": "notepad.exe",
+      "success": true,
+      "message": "Applicatie gestart"
+    },
+    {
+      "action": "type",
+      "target": "Edit",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "key",
+      "success": true,
+      "message": "Toets Ctrl+s ingedrukt"
+    },
+    {
+      "action": "type",
+      "target": "Bestandsnaam:",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "click",
+      "target": "Opslaan",
+      "success": false,
+      "message": "WinAppDriver error 404: {\"status\":7,\"value\":{\"error\":\"no such element\",\"message\":\"An element could not be located on the page using the given search parameters.\"}}"
+    },
+    {
+      "action": "close",
+      "success": true,
+      "message": "Applicatie gesloten"
+    }
+  ],
+  "success": false,
+  "sessionId": "5946F71D-9823-4442-B140-18F533095F88",
+  "endTime": "2026-07-02T08:55:58.575Z"
+}

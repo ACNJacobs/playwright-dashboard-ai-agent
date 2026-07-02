@@ -166,70 +166,6 @@ test('mijn test', async ({ page }) => {
                 <button id="start-codegen-btn" class="btn btn-primary" title="Start Codegen"><i class="fa-solid fa-circle-play"></i></button>
                 <div id="codegen-status" class="status-message"></div>
             </div>
-        
-        <!-- Element Inspector -->
-            <hr>
-            <div class="form-card">
-                <h3><i class="fa-solid fa-magnifying-glass"></i> Element Inspector</h3>
-                <p>Start een applicatie en ontdek UI elementen om betrouwbare tests te schrijven.</p>
-                
-                <div class="form-group">
-                    <label for="inspector-app">Applicatie:</label>
-                    <select id="inspector-app">
-                        <option value="">-- Kies een applicatie --</option>
-                    </select>
-                </div>
-                
-                <div class="inspector-actions">
-                    <button id="inspector-start-btn" class="btn btn-primary">
-                        <i class="fa-solid fa-play"></i> Start Inspector
-                    </button>
-                    <button id="inspector-refresh-btn" class="btn btn-secondary" disabled>
-                        <i class="fa-solid fa-rotate"></i> Vernieuwen
-                    </button>
-                    <button id="inspector-screenshot-btn" class="btn btn-secondary" disabled>
-                        <i class="fa-solid fa-camera"></i> Screenshot
-                    </button>
-                    <button id="inspector-stop-btn" class="btn btn-danger" disabled>
-                        <i class="fa-solid fa-stop"></i> Stop
-                    </button>
-                </div>
-                
-                <div id="inspector-status" class="status-badge status-info" style="margin-top: 1rem; display: none;">
-                    <i class="fa-solid fa-circle-question"></i> Geen actieve sessie
-                </div>
-                
-                <div id="inspector-results" style="margin-top: 1rem; display: none;">
-                    <div class="inspector-tabs">
-                        <button class="inspector-tab-btn active" data-inspector-tab="elements">Elementen</button>
-                        <button class="inspector-tab-btn" data-inspector-tab="source">XML Source</button>
-                        <button class="inspector-tab-btn" data-inspector-tab="screenshot">Screenshot</button>
-                    </div>
-                    
-                    <div id="inspector-elements-tab" class="inspector-tab-content active">
-                        <div class="inspector-toolbar">
-                            <input type="text" id="inspector-filter" placeholder="Filter elementen..." class="inspector-filter">
-                            <button id="inspector-expand-all" class="btn btn-sm btn-secondary">Alles uitklappen</button>
-                            <button id="inspector-collapse-all" class="btn btn-sm btn-secondary">Alles inklappen</button>
-                        </div>
-                        <div id="inspector-elements-tree" class="inspector-tree">
-                            <p class="empty-state">Start de inspector om elementen te zien.</p>
-                        </div>
-                    </div>
-                    
-                    <div id="inspector-source-tab" class="inspector-tab-content">
-                        <pre id="inspector-source-code" class="inspector-code"></pre>
-                    </div>
-                    
-                    <div id="inspector-screenshot-tab" class="inspector-tab-content">
-                        <div id="inspector-screenshot-container">
-                            <p class="empty-state">Geen screenshot beschikbaar.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <hr>
         </section>
 
         <!-- Scheduled Tests Tab -->
@@ -407,18 +343,71 @@ test('mijn test', async ({ page }) => {
                 <!-- Apps worden hier geladen -->
             </div>
             
-            <h3>Test Scenarios</h3>
-            <div id="scenarios-list" class="card-grid">
-                <!-- Scenarios worden hier geladen -->
+            <!-- Element Inspector -->
+            <hr>
+            <div class="form-card">
+                <h3><i class="fa-solid fa-magnifying-glass"></i> Element Inspector</h3>
+                <p>Start een applicatie en ontdek UI elementen om betrouwbare tests te schrijven.</p>
+                
+                <div class="form-group">
+                    <label for="inspector-app">Applicatie:</label>
+                    <select id="inspector-app">
+                        <option value="">-- Kies een applicatie --</option>
+                    </select>
+                </div>
+                
+                <div class="inspector-actions">
+                    <button id="inspector-start-btn" class="btn btn-primary">
+                        <i class="fa-solid fa-play"></i> Start Inspector
+                    </button>
+                    <button id="inspector-refresh-btn" class="btn btn-secondary" disabled>
+                        <i class="fa-solid fa-rotate"></i> Vernieuwen
+                    </button>
+                    <button id="inspector-screenshot-btn" class="btn btn-secondary" disabled>
+                        <i class="fa-solid fa-camera"></i> Screenshot
+                    </button>
+                    <button id="inspector-stop-btn" class="btn btn-danger" disabled>
+                        <i class="fa-solid fa-stop"></i> Stop
+                    </button>
+                </div>
+                
+                <div id="inspector-status" class="status-badge status-info" style="margin-top: 1rem; display: none;">
+                    <i class="fa-solid fa-circle-question"></i> Geen actieve sessie
+                </div>
+                
+                <div id="inspector-results" style="margin-top: 1rem; display: none;">
+                    <div class="inspector-tabs">
+                        <button class="inspector-tab-btn active" data-inspector-tab="elements">Elementen</button>
+                        <button class="inspector-tab-btn" data-inspector-tab="source">XML Source</button>
+                        <button class="inspector-tab-btn" data-inspector-tab="screenshot">Screenshot</button>
+                    </div>
+                    
+                    <div id="inspector-elements-tab" class="inspector-tab-content active">
+                        <div class="inspector-toolbar">
+                            <input type="text" id="inspector-filter" placeholder="Filter elementen..." class="inspector-filter">
+                            <button id="inspector-expand-all" class="btn btn-sm btn-secondary">Alles uitklappen</button>
+                            <button id="inspector-collapse-all" class="btn btn-sm btn-secondary">Alles inklappen</button>
+                        </div>
+                        <div id="inspector-elements-tree" class="inspector-tree">
+                            <p class="empty-state">Start de inspector om elementen te zien.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="inspector-source-tab" class="inspector-tab-content">
+                        <pre id="inspector-source-code" class="inspector-code"></pre>
+                    </div>
+                    
+                    <div id="inspector-screenshot-tab" class="inspector-tab-content">
+                        <div id="inspector-screenshot-container">
+                            <p class="empty-state">Geen screenshot beschikbaar.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
-        
-        <!-- AI Agent Tab -->
-        <section id="ai-agent-tab" class="tab-content">
-            <div class="ai-agent-layout" id="ai-agent-layout">
-                <!-- Test Designer in AI Tab -->
-                <div class="test-designer-container" style="flex: 1; padding: 20px; overflow-y: auto;">
-<!-- AI Test Designer -->
+            
+            <hr>
+            
+            <!-- AI Test Designer -->
             <div class="form-card ai-test-designer">
                 <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Test Designer</h3>
                 <p class="form-description">Beschrijf in gewone taal wat je wilt testen. Ik maak een plan, je reviewt en bewerkt het, en pas daarna voeren we het uit.</p>
@@ -629,8 +618,15 @@ test('mijn test', async ({ page }) => {
                 </button>
             </div>
             
-            
-                </div>
+            <h3>Test Scenarios</h3>
+            <div id="scenarios-list" class="card-grid">
+                <!-- Scenarios worden hier geladen -->
+            </div>
+        </section>
+        
+        <!-- AI Agent Tab -->
+        <section id="ai-agent-tab" class="tab-content">
+            <div class="ai-agent-layout" id="ai-agent-layout">
                 <!-- Linker paneel: Site Agents & Config -->
                 <div class="ai-sidebar" id="ai-sidebar">
                     <button id="ai-sidebar-toggle" class="sidebar-toggle-btn" title="Sidebar inklappen">

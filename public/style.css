@@ -472,10 +472,3 @@ header p {
 ::-webkit-scrollbar-thumb:hover {
     background: #764ba2;
 }
-
-
-/* Toegevoegd voor AI Test Designer layout */
-.test-designer-container {
-  border-right: 1px solid var(--border-color);
-  background-color: var(--bg-color);
-}

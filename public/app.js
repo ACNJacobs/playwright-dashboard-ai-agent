@@ -5752,7 +5752,9 @@ async function loadCreateChatAgents() {
             '<option value="__editor__">📝 Code in Editor (praten over code)</option>' +
             '<option value="__free__">🌐 Vrije URL (browser)</option>' +
             agents.map(a => `<option value="${a.id}">${a.name} (browser)</option>`).join('');
-        if (currentVal) select.value = currentVal;
+        // Default naar Code in Editor als er geen waarde was
+        select.value = currentVal || '__editor__';
+        createChatAgentId = select.value;
     } catch (e) {
         console.error('Fout bij laden agents voor create chat:', e);
     }

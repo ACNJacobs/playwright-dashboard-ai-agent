@@ -2272,7 +2272,14 @@ Geef ALLEEN de code terug, geen markdown formatting, geen uitleg.`;
         : '';
       
       // STAP 1: Vraag het model om een plan te maken (met pagina context)
+      const isFreeMode = agent.id === '__free__';
+      const siteConstraint = isFreeMode
+        ? `De gebruiker heeft zelf een URL opgegeven. Start altijd op: ${agent.baseUrl}`
+        : `Je werkt voor de site "${agent.name}". Je mag NOOIT naar een andere website navigeren dan ${agent.baseUrl}.`;
+
       const planPrompt = `Je bent een Playwright test automation planner.
+
+${siteConstraint}
 
 Gebruiker vraagt: "${message}"
 
@@ -2282,10 +2289,15 @@ Pagina structuur (accessibility tree): ${pageContext}
 Beschikbare tools:
 ${toolsList}${bufferContext}
 
+REGELS:
+- Navigeer ALLEEN binnen ${agent.baseUrl}
+- Gebruik browser_navigate alleen voor de start-URL of sub-pagina's ervan
+- Gebruik NOOIT google.com of andere externe sites
+
 Maak een JSON plan met stappen. Elke stap heeft een "tool" en "args".
 Voorbeeld:
 [
-  {"tool": "browser_navigate", "args": {"url": "https://example.com"}},
+  {"tool": "browser_navigate", "args": {"url": "${agent.baseUrl}"}},
   {"tool": "browser_click", "args": {"element": "text=Accepteren"}},
   {"tool": "browser_take_screenshot", "args": {}}
 ]
@@ -2303,6 +2315,22 @@ Geef ALLEEN de JSON array terug, geen uitleg.`;
         }
       } catch (e) {
         console.error('Fout bij parsen plan:', e);
+      }
+
+      // VALIDATIE: blokkeer navigatie naar externe sites
+      const allowedHost = new URL(agent.baseUrl).hostname;
+      for (const step of plan) {
+        if (step.tool === 'browser_navigate' && step.args?.url) {
+          try {
+            const stepHost = new URL(step.args.url).hostname;
+            if (stepHost !== allowedHost) {
+              console.warn(`[SECURITY] AI probeerde naar ${stepHost} te navigeren. Afgevangen naar ${agent.baseUrl}`);
+              step.args.url = agent.baseUrl;
+            }
+          } catch (e) {
+            // geen geldige URL, laten staan
+          }
+        }
       }
 
       // STAP 2: Voer de stappen uit

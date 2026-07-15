@@ -37,6 +37,24 @@ build/
 *.tmp
 *.temp
 
+# Debug/temp scripts generated during dev
+fix-*.js
+fix_*.js
+fix_*.py
+clean_*.py
+clean_*.js
+remove_*.py
+replace_*.js
+inject_*.js
+new*.txt
+*.bak
+refactor.js
+script.js
+temp_*_backup.js
+
+# App result directories (generated during runs)
+app-results/
+
 # Office docs
 *.docx
 *.doc

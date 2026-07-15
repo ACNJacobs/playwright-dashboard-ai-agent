@@ -2,7 +2,7 @@
 // This file is part of the Playwright Dashboard.
 
 // Socket.IO verbinding
-const socket = io();
+const socket = typeof io !== 'undefined' ? io() : { emit: ()=>{}, on: ()=>{}, off: ()=>{} };
 
 // Registreer sessie bij server
 socket.on('connect', () => {
@@ -28,15 +28,33 @@ function switchTab(targetTab) {
     if (targetBtn) targetBtn.classList.add('active');
     if (targetContent) targetContent.classList.add('active');
     
+    // Lazy-init Monaco editor when create tab becomes visible
+    if (targetTab === 'create' && !monacoEditor) {
+        const ta = document.getElementById('test-code');
+        initMonacoEditor(ta?.value || snippets.template);
+    }
+    if (targetTab === 'create' && monacoEditor) {
+        setTimeout(() => monacoEditor.layout(), 50);
+    }
+    
     // Laad data voor de tab
     if (targetTab === 'tests') loadTests();
     if (targetTab === 'videos') loadVideos();
     if (targetTab === 'screenshots') loadScreenshots();
     if (targetTab === 'scheduled') loadScheduledTestsUI();
+    if (targetTab === 'create') {
+        loadApps(); // ensure apps data available
+        loadCreateChatAgents(); // vul site agent dropdown in chat panel
+    }
     if (targetTab === 'ai-agent') {
         loadAiConfig();
         loadSiteAgents();
         loadMcpTools(); // Laad MCP tools bij openen AI Agent tab
+        // Init Monaco for AI Agent tab
+        setTimeout(() => {
+            if (!monacoEditorAgent) initAgentMonacoEditor();
+            else monacoEditorAgent.layout();
+        }, 100);
     }
 }
 
@@ -576,165 +594,165 @@ async function loadTestsForSchedule() {
 
 // Laad geplande tests
 async function loadScheduledTestsUI() {
-    const list = document.getElementById('scheduled-list');
-    list.innerHTML = '<div class="loading"></div>';
-    
-    try {
-        const response = await fetch('/api/scheduled-tests');
-        const scheduled = await response.json();
-        
-        if (scheduled.length === 0) {
-            list.innerHTML = '<div class="card"><p>Geen geplande tests. Voeg er een toe!</p></div>';
-            return;
-        }
-        
-        list.innerHTML = scheduled.map(test => {
-            const lastRun = test.lastRun ? new Date(test.lastRun).toLocaleString('nl-NL') : 'Nooit';
-            const status = test.enabled ? 'Actief' : 'Gepauzeerd';
-            const statusClass = test.enabled ? 'success' : 'warning';
-            const resultIcon = test.lastResult === 'success' ? '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>' : test.lastResult === 'failed' ? '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i>' : '<i class="fa-regular fa-clock" style="color:var(--text-muted)"></i>';
-            
-            // Format schedule description based on schedule type
-            let scheduleDescription = '';
-            switch (test.scheduleType) {
-                case 'interval':
-                    scheduleDescription = `Elke ${test.intervalMinutes} min`;
-                    break;
-                case 'hourly':
-                    scheduleDescription = 'Elk uur';
-                    break;
-                case 'daily':
-                    scheduleDescription = `Dagelijks om ${test.time}`;
-                    break;
-                case 'weekly':
-                    const days = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
-                    scheduleDescription = `Wekelijks op ${days[test.dayOfWeek]} om ${test.time}`;
-                    break;
-                case 'monthly':
-                    scheduleDescription = `Maandelijks op dag ${test.dayOfMonth} om ${test.time}`;
-                    break;
-                default:
-                    scheduleDescription = `Elke ${test.intervalMinutes || 60} min`;
-            }
-            
-            // Next run info
-            const nextRunHtml = test.enabled && test.nextRunFormatted 
-                ? `<span><i class="fa-solid fa-arrow-right" style="color:var(--info)"></i> <strong>Volgende:</strong> ${test.nextRunFormatted}</span>` 
-                : '';
-            
-            // Run history summary
-            const historyCount = test.runHistory ? test.runHistory.length : 0;
-            const successCount = test.runHistory ? test.runHistory.filter(h => h.result === 'success').length : 0;
-            const historyHtml = historyCount > 0 
-                ? `<span><i class="fa-solid fa-chart-line" style="color:var(--text-muted)"></i> ${successCount}/${historyCount} succes</span>` 
-                : '';
-            
-            return `
-                <div class="card" data-schedule-id="${test.id}">
-                    <div class="card-header">
-                        <h3>${resultIcon} ${test.testFile}</h3>
-                        <span class="status-badge status-${statusClass}">${status}</span>
-                    </div>
-                    <div class="card-meta">
-                        <span><i class="fa-regular fa-clock"></i> ${scheduleDescription}</span>
-                        <span><i class="fa-regular fa-calendar"></i> Laatste: ${lastRun}</span>
-                        ${nextRunHtml}
-                        ${historyHtml}
-                    </div>
-                    <div class="actions">
-                        <button class="btn btn-success btn-sm" title="Nu Draaien" onclick="runScheduledTestNow('${test.id}')"><i class="fa-solid fa-play"></i></button>
-                        <button class="btn btn-warning btn-sm" title="Bewerken" onclick="editScheduledTest('${test.id}')"><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn btn-secondary btn-sm" title="${test.enabled ? 'Pauzeren' : 'Hervatten'}" onclick="toggleScheduledTest('${test.id}', ${!test.enabled})">${test.enabled ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>'}</button>
-                        <button class="btn btn-danger btn-sm" title="Verwijderen" onclick="deleteScheduledTest('${test.id}')"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } catch (error) {
-        list.innerHTML = `<div class="card"><p>Fout bij laden geplande tests: ${error.message}</p></div>`;
+  const list = document.getElementById('scheduled-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading"></div>';
+  try {
+    const response = await fetch('/api/scheduled-tests');
+    const scheduled = await response.json();
+    if (scheduled.length === 0) {
+      list.innerHTML = '<div class="card"><p>Geen geplande tests. Voeg er een toe!</p></div>';
+      return;
     }
+    list.innerHTML = scheduled.map(test => {
+      const lastRun = test.lastRun ? new Date(test.lastRun).toLocaleString('nl-NL') : 'Nooit';
+      const status = test.enabled ? 'Actief' : 'Gepauzeerd';
+      const statusClass = test.enabled ? 'success' : 'warning';
+      let title = test.testType === 'app-scenario' ? (test.scenarioId + ' (App/Navision)') : test.testFile;
+      return `<div class="card" data-schedule-id="${test.id}">
+  <div class="card-header"><h3>${title}</h3><span class="status-badge status-${statusClass}">${status}</span></div>
+  <div class="card-meta"><span>Laatste run: ${lastRun}</span></div>
+  <div class="actions">
+    <button class="btn btn-success btn-sm" onclick="runScheduledTestNow('${test.id}')"><i class="fa-solid fa-play"></i></button>
+    <button class="btn btn-danger btn-sm" onclick="deleteScheduledTest('${test.id}')"><i class="fa-solid fa-trash"></i></button>
+  </div>
+</div>`;
+    }).join('');
+  } catch (error) {
+    list.innerHTML = `<div class="card"><p>Fout: ${error.message}</p></div>`;
+  }
+}
+
+// Laad beschikbare app scenarios in de dropdown
+async function loadScenariosForSchedule() {
+    const select = document.getElementById('scheduled-scenario-select');
+    if (!select) return;
+    try {
+        const response = await fetch('/api/app-scenarios');
+        const scenarios = await response.json();
+        
+        select.innerHTML = '<option value="">-- Kies een Navision / App scenario --</option>';
+        scenarios.forEach(scen => {
+            const option = document.createElement('option');
+            option.value = scen.id;
+            option.textContent = scen.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Fout bij laden scenarios voor schedule:', error);
+    }
+}
+
+// Event listener voor test type select
+const typeSelect = document.getElementById('test-type-select');
+if (typeSelect) {
+    typeSelect.addEventListener('change', () => {
+        const scenariosBlock = document.getElementById('scenarios-block');
+        const webTestsBlock = document.getElementById('web-tests-block');
+        
+        if (typeSelect.value === 'app-scenario') {
+            if (scenariosBlock) scenariosBlock.style.display = 'block';
+            if (webTestsBlock) webTestsBlock.style.display = 'none';
+            loadScenariosForSchedule();
+        } else {
+            if (scenariosBlock) scenariosBlock.style.display = 'none';
+            if (webTestsBlock) webTestsBlock.style.display = 'block';
+            loadTestsForSchedule();
+        }
+    });
 }
 
 // Voeg geplande test toe
 async function addScheduledTest() {
-    const testFile = document.getElementById('scheduled-test-select').value;
-    const scheduleType = document.getElementById('schedule-type').value;
-    
-    if (!testFile) {
-        alert('Kies een test!');
-        return;
-    }
-    
-    // Validate required fields based on schedule type
-    let requestData = { testFile, scheduleType, enabled: true };
-    
-    switch (scheduleType) {
-        case 'interval':
-            const interval = document.getElementById('scheduled-interval').value;
-            if (!interval) {
-                alert('Vul het interval in!');
-                return;
-            }
-            requestData.intervalMinutes = parseInt(interval);
-            break;
-            
-        case 'hourly':
-            // No additional parameters needed
-            break;
-            
-        case 'daily':
-            const time = document.getElementById('scheduled-time').value;
-            if (!time) {
-                alert('Vul de tijd in!');
-                return;
-            }
-            requestData.time = time;
-            break;
-            
-        case 'weekly':
-            const weeklyTime = document.getElementById('scheduled-time').value;
-            const dayOfWeek = document.getElementById('scheduled-day-of-week').value;
-            if (!weeklyTime) {
-                alert('Vul de tijd in!');
-                return;
-            }
-            requestData.time = weeklyTime;
-            requestData.dayOfWeek = parseInt(dayOfWeek);
-            break;
-            
-        case 'monthly':
-            const monthlyTime = document.getElementById('scheduled-time').value;
-            const dayOfMonth = document.getElementById('scheduled-day-of-month').value;
-            if (!monthlyTime) {
-                alert('Vul de tijd in!');
-                return;
-            }
-            if (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31) {
-                alert('Vul een geldige dag van de maand in (1-31)!');
-                return;
-            }
-            requestData.time = monthlyTime;
-            requestData.dayOfMonth = parseInt(dayOfMonth);
-            break;
-    }
-    
-    try {
-        const response = await fetch('/api/scheduled-tests', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`Test gepland!`);
-            loadScheduledTestsUI();
-            
-            // Reset form
-            document.getElementById('scheduled-test-select').value = '';
-            document.getElementById('schedule-type').value = 'interval';
-            document.getElementById('scheduled-interval').value = '60';
+      const testType = document.getElementById('test-type-select').value;
+      const scheduleType = document.getElementById('schedule-type').value;
+      
+      let testFile = null;
+      let scenarioId = null;
+      
+      if (testType === 'app-scenario') {
+          scenarioId = document.getElementById('scheduled-scenario-select').value;
+          if (!scenarioId) {
+              alert('Kies een Navision / App scenario!');
+              return;
+          }
+      } else {
+          testFile = document.getElementById('scheduled-test-select').value;
+          if (!testFile) {
+              alert('Kies een test!');
+              return;
+          }
+      }
+      
+      // Validate required fields based on schedule type
+      let requestData = { testType, testFile, scenarioId, scheduleType, enabled: true };
+      
+      switch (scheduleType) {
+          case 'interval':
+              const interval = document.getElementById('scheduled-interval').value;
+              if (!interval) {
+                  alert('Vul het interval in!');
+                  return;
+              }
+              requestData.intervalMinutes = parseInt(interval);
+              break;
+              
+          case 'hourly':
+              // No additional parameters needed
+              break;
+              
+          case 'daily':
+              const time = document.getElementById('scheduled-time').value;
+              if (!time) {
+                  alert('Vul de tijd in!');
+                  return;
+              }
+              requestData.time = time;
+              break;
+              
+          case 'weekly':
+              const weeklyTime = document.getElementById('scheduled-time').value;
+              const dayOfWeek = document.getElementById('scheduled-day-of-week').value;
+              if (!weeklyTime) {
+                  alert('Vul de tijd in!');
+                  return;
+              }
+              requestData.time = weeklyTime;
+              requestData.dayOfWeek = parseInt(dayOfWeek);
+              break;
+              
+          case 'monthly':
+              const monthlyTime = document.getElementById('scheduled-time').value;
+              const dayOfMonth = document.getElementById('scheduled-day-of-month').value;
+              if (!monthlyTime) {
+                  alert('Vul de tijd in!');
+                  return;
+              }
+              if (!dayOfMonth || dayOfMonth < 1 || dayOfMonth > 31) {
+                  alert('Vul een geldige dag van de maand in (1-31)!');
+                  return;
+              }
+              requestData.time = monthlyTime;
+              requestData.dayOfMonth = parseInt(dayOfMonth);
+              break;
+      }
+      
+      try {
+          const response = await fetch('/api/scheduled-tests', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestData)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+              alert(`Test gepland!`);
+              loadScheduledTestsUI();
+              
+              // Reset form
+              document.getElementById('scheduled-test-select').value = '';
+              document.getElementById('scheduled-scenario-select').value = '';
             document.getElementById('scheduled-time').value = '';
             document.getElementById('scheduled-day-of-week').value = '0';
             document.getElementById('scheduled-day-of-month').value = '1';
@@ -751,7 +769,9 @@ async function addScheduledTest() {
 
 // Update schedule form UI based on selected schedule type
 function updateScheduleFormUI() {
-    const scheduleType = document.getElementById('schedule-type').value;
+    const scheduleTypeEl = document.getElementById('schedule-type');
+    if (!scheduleTypeEl) return; // element not present on this page
+    const scheduleType = scheduleTypeEl.value;
     
     // Hide all optional groups first
     document.getElementById('interval-group').style.display = 'none';
@@ -1305,9 +1325,7 @@ async function selectSiteAgent(id) {
         
         document.getElementById('ai-chat-container').classList.remove('hidden');
         
-        // Verberg test editor
-        const testEditor = document.getElementById('test-editor-panel');
-        if (testEditor) testEditor.classList.add('hidden');
+        // Test Editor is altijd zichtbaar in AI Agent tab — laat staan
         
         document.getElementById('ai-chat-site-name').textContent = agent.name;
         
@@ -2076,7 +2094,7 @@ async function generateTest() {
     }
 }
 
-// Creëer nieuwe site agent
+// Creëer of update site agent
 async function createSiteAgent() {
     const name = document.getElementById('new-site-name').value.trim();
     const url = document.getElementById('new-site-url').value.trim();
@@ -2106,17 +2124,53 @@ async function createSiteAgent() {
     
     const credentials = username ? { username, password } : null;
     
+    const modal = document.getElementById('site-agent-modal');
+    const editId = modal.dataset.editId;
+    
     try {
-        const response = await fetch('/api/site-agents', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, baseUrl: url, description: desc, credentials, skills, linkedTests })
-        });
+        let response, result;
         
-        const result = await response.json();
+        if (editId) {
+            // UPDATE bestaande agent
+            response = await fetch(`/api/site-agents/${editId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skills, linkedTests, description: desc })
+            });
+            result = await response.json();
+            
+            if (result.success) {
+                // Update ook naam, url en credentials lokaal (server PUT accepteert alleen skills/linkedTests/description)
+                let agents = await fetch('/api/site-agents').then(r => r.json());
+                const idx = agents.findIndex(a => a.id === editId);
+                if (idx !== -1) {
+                    agents[idx].name = name;
+                    agents[idx].baseUrl = url;
+                    agents[idx].description = desc;
+                    if (credentials) agents[idx].credentials = credentials;
+                    // Opslaan via een volledige POST-replace truc: verwijder + toevoegen
+                    await fetch(`/api/site-agents/${editId}`, { method: 'DELETE' });
+                    const addRes = await fetch('/api/site-agents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: editId, name, baseUrl: url, description: desc, credentials, skills, linkedTests })
+                    });
+                    result = await addRes.json();
+                }
+            }
+        } else {
+            // NIEUWE agent
+            response = await fetch('/api/site-agents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, baseUrl: url, description: desc, credentials, skills, linkedTests })
+            });
+            result = await response.json();
+        }
         
         if (result.success) {
             closeModals();
+            delete modal.dataset.editId; // edit mode resetten
             loadSiteAgents();
             
             // Clear form
@@ -2126,10 +2180,12 @@ async function createSiteAgent() {
             document.getElementById('new-site-username').value = '';
             document.getElementById('new-site-password').value = '';
             document.querySelectorAll('#new-site-skills .skill-tag').forEach(t => t.classList.remove('selected'));
-            if (linkedSelect) linkedSelect.selectedIndex = -1;
+            const linkedSelectEl = document.getElementById('linked-tests-select');
+            if (linkedSelectEl) linkedSelectEl.selectedIndex = -1;
             
-            // Auto select new agent
-            selectSiteAgent(result.agent.id);
+            // Auto select agent
+            if (result.agent?.id) selectSiteAgent(result.agent.id);
+            else if (editId) selectSiteAgent(editId);
         } else {
             alert('Fout: ' + result.error);
         }
@@ -2398,37 +2454,36 @@ let generatedCodeBuffer = []; // Accumuleert gegenereerde code snippets
 function openTestEditor(code = '', name = '') {
     const panel = document.getElementById('test-editor-panel');
     const nameInput = document.getElementById('test-editor-name');
-    const codeInput = document.getElementById('test-editor-code');
     const statusBadge = document.getElementById('codegen-status-badge');
-    
+
     if (panel) {
-        // Test Editor is altijd zichtbaar in AI Agent tab — geen hidden toggle meer
-        // Scroll naar de editor
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    
+
     if (nameInput) nameInput.value = name || 'nieuwe-test';
-    if (codeInput && code) {
-        codeInput.value = code;
+
+    // Use AI Agent Monaco editor if available, fallback to hidden textarea
+    if (code) {
+        setAgentEditorCode(code);
         generatedCodeBuffer = [code];
     }
+
     if (statusBadge) {
         statusBadge.innerHTML = '<i class="fa-solid fa-file-pen"></i> Code geladen';
         statusBadge.className = 'status-badge status-success';
     }
-    
+
     currentTestEditorName = name || 'nieuwe-test';
 }
 
 function clearTestEditor() {
     const nameInput = document.getElementById('test-editor-name');
-    const codeInput = document.getElementById('test-editor-code');
     const statusBadge = document.getElementById('codegen-status-badge');
-    
+
     if (nameInput) nameInput.value = '';
-    if (codeInput) codeInput.value = '';
+    setAgentEditorCode('');
     generatedCodeBuffer = [];
-    
+
     if (statusBadge) {
         statusBadge.innerHTML = '<i class="fa-solid fa-file-pen"></i> Klaar voor code generatie';
         statusBadge.className = 'status-badge status-info';
@@ -2436,64 +2491,41 @@ function clearTestEditor() {
 }
 
 function appendToTestEditor(code, source = 'agent') {
-    const codeInput = document.getElementById('test-editor-code');
-    const statusBadge = document.getElementById('codegen-status-badge');
-    
-    if (!codeInput) return;
-    
-    const timestamp = new Date().toLocaleTimeString('nl-NL');
-    const labeledCode = `// [${source}] ${timestamp}\n${code}\n`;
-    
-    // Append aan buffer
-    generatedCodeBuffer.push(labeledCode);
-    
-    // Append aan textarea
-    const currentValue = codeInput.value;
-    if (currentValue && !currentValue.endsWith('\n')) {
-        codeInput.value = currentValue + '\n' + labeledCode;
-    } else {
-        codeInput.value = currentValue + labeledCode;
-    }
-    
-    // Auto-scroll naar beneden
-    codeInput.scrollTop = codeInput.scrollHeight;
-    
-    // Update status
-    if (statusBadge) {
-        statusBadge.innerHTML = `<i class="fa-solid fa-file-pen"></i> ${generatedCodeBuffer.length} snippet(s) gegenereerd`;
-        statusBadge.className = 'status-badge status-success';
-    }
+    appendAgentEditorCode(code, source);
 }
 
 function closeTestEditor() {
-    // Test Editor is altijd zichtbaar — leeg in plaats van verbergen
     clearTestEditor();
 }
 
 async function saveTestFromEditor() {
     const nameInput = document.getElementById('test-editor-name');
-    const codeInput = document.getElementById('test-editor-code');
-    
-    const name = nameInput?.value?.trim() || currentTestEditorName;
-    const code = codeInput?.value?.trim();
-    
-    if (!name || !code) {
-        alert('Vul een naam en code in!');
+    let name = nameInput?.value?.trim() || currentTestEditorName;
+    const code = getAgentEditorCode().trim();
+
+    if (!code) {
+        addCreateChatMessage('bot', '⚠️ Editor is leeg. Plak eerst code in de editor!');
         return;
     }
-    
+
+    if (!name) {
+        const match = code.match(/test\(['"`]([^'"`]+)['"`]/);
+        name = match ? match[1].replace(/[^a-zA-Z0-9_-]/g, '-') : 'ai-test';
+        if (nameInput) nameInput.value = name;
+    }
+
     try {
         const response = await fetch('/api/create-test', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, code })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             addChatMessage('bot', `✅ Test "${result.file}" opgeslagen!`);
-            loadTests(); // Ververs test lijst
+            loadTests();
         } else {
             addChatMessage('bot', `❌ Fout: ${result.error}`);
         }
@@ -2504,36 +2536,51 @@ async function saveTestFromEditor() {
 
 async function runTestFromEditor() {
     const nameInput = document.getElementById('test-editor-name');
-    const codeInput = document.getElementById('test-editor-code');
-    
-    const name = nameInput?.value?.trim() || currentTestEditorName;
-    const code = codeInput?.value?.trim();
-    
-    if (!name || !code) {
-        alert('Vul een naam en code in!');
+    let name = nameInput?.value?.trim() || currentTestEditorName;
+    const code = getAgentEditorCode().trim();
+
+    if (!code) {
+        addCreateChatMessage('bot', '⚠️ Editor is leeg. Plak eerst code in de editor!');
         return;
     }
-    
-    // Eerst opslaan
+
+    // Geen naam? Haal uit de code of gebruik fallback
+    if (!name) {
+        const match = code.match(/test\(['"`]([^'"`]+)['"`]/);
+        name = match ? match[1].replace(/[^a-zA-Z0-9_-]/g, '-') : 'ai-test';
+        if (nameInput) nameInput.value = name;
+    }
+
     await saveTestFromEditor();
-    
-    // Dan uitvoeren
+
+    // Spinner tonen terwijl test loopt
+    const spinnerId = 'test-run-spinner-' + Date.now();
+    addCreateChatMessage('bot', `<i class="fa-solid fa-spinner fa-spin"></i> Test "${name}" wordt uitgevoerd in zichtbare browser...`, 'chat-result-neutral');
+    const spinnerMsg = [...document.querySelectorAll('#create-chat-messages .chat-message.bot')].pop();
+    if (spinnerMsg) spinnerMsg.id = spinnerId;
+
     try {
         const response = await fetch('/api/run-test', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ testFile: `${name}.spec.js`, headed: true })
         });
-        
+
         const result = await response.json();
-        
+
+        // Verwijder spinner
+        const spinner = document.getElementById(spinnerId);
+        if (spinner) spinner.remove();
+
         if (result.success) {
-            addChatMessage('bot', `▶️ Test "${name}" uitgevoerd!\n\n\`\`\`\n${result.output?.substring(0, 1000)}\n\`\`\``);
+            addCreateChatMessage('bot', `✅ Test "${name}" succesvol uitgevoerd!\n\n\`\`\`\n${result.output?.substring(0, 1000)}\n\`\`\``, 'chat-result-pass');
         } else {
-            addChatMessage('bot', `❌ Test faalde:\n\n\`\`\`\n${result.output?.substring(0, 1000)}\n\`\`\``);
+            addCreateChatMessage('bot', `❌ Test "${name}" faalde:\n\n\`\`\`\n${result.output?.substring(0, 1000)}\n\`\`\``, 'chat-result-fail');
         }
     } catch (error) {
-        addChatMessage('bot', `❌ Fout: ${error.message}`);
+        const spinner = document.getElementById(spinnerId);
+        if (spinner) spinner.remove();
+        addCreateChatMessage('bot', `❌ Fout bij uitvoeren test: ${error.message}`, 'chat-result-fail');
     }
 }
 
@@ -2690,7 +2737,16 @@ document.getElementById('test-ai-config-btn')?.addEventListener('click', async (
     }
 });
 document.getElementById('add-site-agent-btn').addEventListener('click', () => {
-    document.getElementById('site-agent-modal').classList.remove('hidden');
+    const modal = document.getElementById('site-agent-modal');
+    modal.classList.remove('hidden');
+    delete modal.dataset.editId;
+    // Clear form voor nieuwe agent
+    document.getElementById('new-site-name').value = '';
+    document.getElementById('new-site-url').value = '';
+    document.getElementById('new-site-desc').value = '';
+    document.getElementById('new-site-username').value = '';
+    document.getElementById('new-site-password').value = '';
+    document.querySelectorAll('#new-site-skills .skill-tag').forEach(t => t.classList.remove('selected'));
     loadAvailableTestsForLinking();
 });
 
@@ -2747,71 +2803,17 @@ document.getElementById('ai-done-btn')?.addEventListener('click', async () => {
     await sendMcpChatMessage('klaar');
 });
 
-// 🖱️ Handmatige actie knop
-document.getElementById('manual-action-btn')?.addEventListener('click', async () => {
-    const input = document.getElementById('manual-action-input');
-    const action = input?.value?.trim();
-    
-    if (!action) {
-        alert('Typ een handmatige actie!');
-        return;
-    }
-    
-    if (!currentSiteAgent) {
-        alert('Selecteer eerst een site agent!');
-        return;
-    }
-    
-    // Toon in chat
-    addChatMessage('user', `🖱️ Handmatige actie: ${action}`);
-    
-    try {
-        const response = await fetch('/api/manual-mcp-action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                siteAgentId: currentSiteAgent.id,
-                action: action
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            addChatMessage('bot', `✅ Handmatige actie uitgevoerd:\n\`\`\`\n${result.code}\n\`\`\``);
-            if (result.code) {
-                appendToTestEditor(result.code, 'handmatig');
-            }
-        } else {
-            addChatMessage('bot', `❌ Fout bij handmatige actie: ${result.error}`);
-        }
-    } catch (error) {
-        addChatMessage('bot', `❌ Fout: ${error.message}`);
-    }
-    
-    // Clear input
-    if (input) input.value = '';
-});
-
 // Menu toggle knop
 document.getElementById('menu-toggle-btn')?.addEventListener('click', toggleMenu);
 
-// Gebruik MCP chat in plaats van gewone chat
+// Gebruik MCP chat — Enter verstuurt, Shift+Enter is nieuwe regel
 document.getElementById('ai-chat-send-btn').addEventListener('click', () => sendMcpChatMessage());
 document.getElementById('ai-chat-input').addEventListener('keydown', (e) => {
-    // Ctrl+Enter of Shift+Enter = verstuur
-    if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey)) {
-        e.preventDefault();
-        sendMcpChatMessage();
-    }
-    // Gewone Enter = nieuwe regel (standaard textarea gedrag)
-});
-
-// Handmatige actie input — Enter = uitvoeren
-document.getElementById('manual-action-input')?.addEventListener('keydown', (e) => {
+    // Shift+Enter = nieuwe regel (standaard textarea)
+    // Gewone Enter = verstuur bericht
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        document.getElementById('manual-action-btn')?.click();
+        sendMcpChatMessage();
     }
 });
 
@@ -2960,7 +2962,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toggleBtn) {
         toggleBtn.addEventListener('click', toggleAutoRefresh);
     }
+
+    // Start globale WinAppDriver status check
+    updateGlobalWadStatus();
+    setInterval(updateGlobalWadStatus, 10000);
 });
+
+// Globale WinAppDriver status indicator in de header
+async function updateGlobalWadStatus() {
+    const statusEl = document.getElementById('global-wad-status');
+    if (!statusEl) return;
+
+    try {
+        const response = await fetch('/api/winappdriver-status');
+        const data = await response.json();
+
+        if (data.running) {
+            statusEl.className = 'status-badge status-success';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> WAD actief';
+            statusEl.title = `WinAppDriver actief (${data.path || 'onbekend pad'})`;
+        } else if (data.installed) {
+            statusEl.className = 'status-badge status-warning';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-pause"></i> WAD gestopt';
+            statusEl.title = 'WinAppDriver is geïnstalleerd maar niet gestart. Open Applicaties tab om te starten.';
+        } else {
+            statusEl.className = 'status-badge status-danger';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> WAD niet geïnstalleerd';
+            statusEl.title = 'WinAppDriver niet gevonden. Installeer het via Applicaties tab.';
+        }
+    } catch (error) {
+        statusEl.className = 'status-badge status-danger';
+        statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> WAD onbekend';
+        statusEl.title = 'Kon geen verbinding maken met de server.';
+    }
+}
 
 // ============================================
 // INTERACTIEVE TEST FUNCTIES
@@ -3727,6 +3762,7 @@ async function loadApps() {
             aiTestAppSelect.innerHTML = '<option value="">-- Kies een applicatie --</option>' +
                 apps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
         }
+
     } catch (error) {
         console.error('Fout bij laden apps:', error);
     }
@@ -5134,4 +5170,750 @@ async function copyToClipboard(text) {
     } catch (err) {
         console.error('Kopieeren mislukt:', err);
     }
+}
+
+/* =====================================================
+   AI FIX LOOP — Monaco Editor + Run + AI Fix
+   ===================================================== */
+
+let monacoEditor = null;
+let monacoEditorAgent = null;    // AI Agent tab editor
+let monacoDiffEditor = null;
+let currentEditorRunId = null;
+let currentEditorRunStream = null;
+let currentTestFile = null;
+
+// --- Monaco Editor Setup ---
+
+function initMonacoEditor(initialCode) {
+    const container = document.getElementById("monaco-editor-container");
+    if (!container) return;
+
+    require.config({ paths: { "vs": "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs" } });
+    require(["vs/editor/editor.main"], function() {
+        monacoEditor = monaco.editor.create(container, {
+            value: initialCode || snippets.template,
+            language: "javascript",
+            theme: "vs-dark",
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 13,
+            lineNumbers: "on",
+            roundedSelection: false,
+            scrollBeyondLastLine: false,
+            wordWrap: "on"
+        });
+
+        // Init second editor for AI Agent tab once the first is ready
+        initAgentMonacoEditor();
+    });
+}
+
+function initAgentMonacoEditor() {
+    const container = document.getElementById("ai-agent-monaco-container");
+    if (!container) return;
+    if (monacoEditorAgent) return; // already created
+
+    monacoEditorAgent = monaco.editor.create(container, {
+        value: "",
+        language: "javascript",
+        theme: "vs-dark",
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 13,
+        lineNumbers: "on",
+        roundedSelection: false,
+        scrollBeyondLastLine: false,
+        wordWrap: "on"
+    });
+}
+
+function getMonacoEditor() {
+    if (typeof monacoEditor !== 'undefined' && monacoEditor) return monacoEditor;
+    if (typeof window !== 'undefined' && window.monaco && window.monaco.editor && window.monaco.editor.getEditors) {
+        const editors = window.monaco.editor.getEditors();
+        if (editors && editors.length > 0) return editors[0];
+    }
+    return null;
+}
+
+function getEditorCode() {
+    return monacoEditor ? monacoEditor.getValue() : (document.getElementById("test-code")?.value || "");
+}
+
+function setEditorCode(code) {
+    if (monacoEditor) {
+        monacoEditor.setValue(code);
+    } else {
+        const ta = document.getElementById("test-code");
+        if (ta) ta.value = code;
+    }
+}
+
+function insertSnippetMonaco(type) {
+    const editor = getMonacoEditor();
+    if (!editor) return;
+    const snippet = snippets[type] || "";
+    const sel = editor.getSelection();
+    const id = { major: 1, minor: 1 };
+    const op = {
+        identifier: id,
+        range: sel,
+        text: snippet,
+        forceMoveMarkers: true
+    };
+    editor.executeEdits("snippet", [op]);
+}
+
+function openMonacoFind() {
+    const editor = getMonacoEditor();
+    if (editor) {
+        editor.getAction('actions.find').run();
+    } else {
+        const ta = document.getElementById('test-code');
+        if (ta && !ta.classList.contains('hidden')) ta.focus();
+    }
+}
+
+function searchInCodeMonaco(term) {
+    const editor = getMonacoEditor();
+    if (!editor) return null;
+    const model = editor.getModel();
+    if (!model) return null;
+    const matches = model.findMatches(term, false, false, false, null, true);
+    if (matches && matches.length > 0) {
+        editor.setPosition({ lineNumber: matches[0].range.startLineNumber, column: matches[0].range.startColumn });
+        editor.revealLineInCenter(matches[0].range.startLineNumber);
+        editor.setSelection(matches[0].range);
+        return matches;
+    }
+    return null;
+}
+
+// --- AI Agent Editor Helpers ---
+function getAgentEditorCode() {
+    if (monacoEditor) return monacoEditor.getValue();
+    if (monacoEditorAgent) return monacoEditorAgent.getValue();
+    const ta = document.getElementById('test-editor-code');
+    return ta ? ta.value : '';
+}
+
+function setAgentEditorCode(code) {
+    if (monacoEditor) {
+        monacoEditor.setValue(code);
+    }
+    if (monacoEditorAgent) {
+        monacoEditorAgent.setValue(code);
+    }
+    const ta = document.getElementById('test-editor-code');
+    if (ta) ta.value = code;
+}
+
+function appendAgentEditorCode(code, source = 'agent') {
+    const current = getAgentEditorCode();
+    const timestamp = new Date().toLocaleTimeString('nl-NL');
+    const labeledCode = `// [${source}] ${timestamp}\n${code}\n`;
+    const newValue = current && !current.endsWith('\n')
+        ? current + '\n' + labeledCode
+        : current + labeledCode;
+    setAgentEditorCode(newValue);
+
+    const statusBadge = document.getElementById('codegen-status-badge');
+    if (statusBadge) {
+        generatedCodeBuffer.push(labeledCode);
+        statusBadge.innerHTML = `<i class="fa-solid fa-file-pen"></i> ${generatedCodeBuffer.length} snippet(s) gegenereerd`;
+        statusBadge.className = 'status-badge status-success';
+    }
+}
+
+// --- Run Test from Editor ---
+async function runEditorTest() {
+    const code = getEditorCode();
+    const testName = document.getElementById("test-name")?.value?.trim() || "Untitled";
+    const targetAppId = document.getElementById("target-app-select")?.value || "";
+
+    if (!code || !code.trim()) {
+        showToast("Schrijf eerst testcode in de editor.", "error");
+        return;
+    }
+
+    const res = await fetch("/api/tests/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, testName, targetAppId })
+    });
+    const data = await res.json();
+    if (data.error) {
+        showToast("Fout bij starten: " + (data.error || "Onbekend"), "error");
+        return;
+    }
+
+    currentEditorRunId = data.runId;
+    renderRunPanel({ status: "running", steps: [], error: null });
+
+    const evtSource = new EventSource("/api/tests/run/" + currentEditorRunId + "/stream");
+    currentEditorRunStream = evtSource;
+
+    evtSource.addEventListener("message", (e) => {
+        try {
+            const payload = JSON.parse(e.data);
+            if (payload.type === "run_start") { /* run gestart */ }
+            if (payload.type === "step_end") appendRunStep(payload);
+            if (payload.type === "console" && payload.level === "error") showRunError(payload.text);
+            if (payload.type === "run_end") {
+                finalizeRunPanel(payload.status === "passed" ? "success" : "fail", payload);
+                evtSource.close();
+                currentEditorRunStream = null;
+            }
+        } catch (_) {}
+    });
+
+    evtSource.onerror = () => {
+        evtSource.close();
+        currentEditorRunStream = null;
+    };
+}
+
+function stopEditorTest() {
+    if (!currentEditorRunId) return;
+    fetch("/api/tests/run/" + currentEditorRunId + "/cancel", { method: "POST" }).catch(() => {});
+    if (currentEditorRunStream) { currentEditorRunStream.close(); currentEditorRunStream = null; }
+    finalizeRunPanel("fail", { error: "Geannuleerd door gebruiker." });
+}
+
+// --- UI Helpers for Run Panel ---
+function renderRunPanel(state) {
+    const panel = document.getElementById("run-result-panel");
+    if (!panel) return;
+    panel.classList.remove("hidden");
+    const stepsDiv = document.getElementById("run-result-steps");
+    const errDiv = document.getElementById("run-result-error");
+    const meta = document.getElementById("run-result-meta");
+    const title = document.querySelector(".run-result-title");
+    const traceBtn = document.getElementById("view-trace-btn");
+    const fixBtn = document.getElementById("result-fix-ai-btn");
+    if (stepsDiv) { stepsDiv.innerHTML = ""; }
+    if (errDiv) { errDiv.classList.add("hidden"); errDiv.textContent = ""; }
+    if (meta) { meta.textContent = ""; }
+    if (title) { title.innerHTML = '<i class="fa-solid fa-list-check"></i> Resultaat'; }
+    if (traceBtn) traceBtn.classList.add("hidden");
+    if (fixBtn) fixBtn.classList.add("hidden");
+}
+
+function appendRunStep(step) {
+    const stepsDiv = document.getElementById("run-result-steps");
+    if (!stepsDiv) return;
+    const el = document.createElement("div");
+    el.className = "run-result-step";
+    const loc = step.location || "";
+    const cls = step.status === "error" ? "err" : (step.status === "ok" ? "ok" : "");
+    const statusLabel = step.status === "passed" ? "✅" : (step.status === "failed" ? "❌" : "");
+    el.innerHTML = `<span class="loc">${loc}</span><span class="act">${step.action || ""}</span><span class="${cls}">${statusLabel}</span>`;
+    if (step.lineNumber) {
+        el.addEventListener("click", () => {
+            if (monacoEditor && step.lineNumber) {
+                monacoEditor.revealLineInCenter(step.lineNumber);
+                monacoEditor.setPosition({ lineNumber: step.lineNumber, column: 1 });
+            }
+        });
+    }
+    stepsDiv.appendChild(el);
+    stepsDiv.scrollTop = stepsDiv.scrollHeight;
+}
+
+function showRunError(text) {
+    const errDiv = document.getElementById("run-result-error");
+    if (!errDiv) return;
+    errDiv.textContent = text;
+    errDiv.classList.remove("hidden");
+}
+
+function finalizeRunPanel(status, payload) {
+    const header = document.querySelector(".run-result-header");
+    const title = document.querySelector(".run-result-title");
+    const meta = document.getElementById("run-result-meta");
+    const traceBtn = document.getElementById("view-trace-btn");
+    const fixBtn = document.getElementById("result-fix-ai-btn");
+    if (header) header.className = "run-result-header " + status;
+    if (title) title.innerHTML = status === "success" ? '<i class="fa-solid fa-list-check"></i> ✅ Geslaagd' : '<i class="fa-solid fa-list-check"></i> ❌ Gefaald';
+    if (meta && payload) {
+        const dur = payload.duration ? `(${payload.duration}ms)` : "";
+        meta.textContent = dur;
+    }
+    if (traceBtn) traceBtn.classList.remove("hidden");
+    if (fixBtn) {
+        if (status === "fail") fixBtn.classList.remove("hidden");
+        else fixBtn.classList.add("hidden");
+    }
+    if (payload && payload.error) showRunError(payload.error);
+}
+
+// --- AI Fix ---
+async function fixWithAI() {
+    if (!currentEditorRunId) { showToast("Geen recente run gevonden.", "error"); return; }
+    showToast("AI analyseert de fout...", "info");
+    const code = getEditorCode();
+    const aiConfig = getAiSelection();
+
+    const res = await fetch("/api/tests/fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: currentEditorRunId, code, mode: "fast", aiConfig })
+    });
+    if (!res.ok || !res.body) { showToast("AI fix mislukt.", "error"); return; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let diffText = "";
+    let explanation = "";
+    let buffer = "";
+
+    const modal = document.getElementById("diff-modal");
+    if (modal) modal.classList.remove("hidden");
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+        for (const part of parts) {
+            const lines = part.split("\n");
+            for (const line of lines) {
+                if (!line.startsWith("data:")) continue;
+                const payload = line.replace(/^data:\s*/, "");
+                try {
+                    const ev = JSON.parse(payload);
+                    if (ev.type === "explanation") explanation = ev.text;
+                    if (ev.type === "diff") diffText += ev.text;
+                    if (ev.type === "done") break;
+                    if (ev.type === "fix_complete") {
+                        explanation = ev.explanation;
+                        diffText = ev.newCode;
+                    }
+                } catch (e) { /* raw text, ignore */ }
+            }
+        }
+    }
+
+    document.getElementById("diff-explanation").textContent = explanation || "Geen uitleg ontvangen.";
+    renderDiffViewer(code, diffText || code);
+}
+
+function renderDiffViewer(original, modified) {
+    const container = document.getElementById("diff-editor-container");
+    if (!container) return;
+    container.innerHTML = "";
+    require(["vs/editor/editor.main"], function() {
+        monacoDiffEditor = monaco.editor.createDiffEditor(container, {
+            theme: "vs-dark",
+            automaticLayout: true,
+            readOnly: true,
+            renderSideBySide: true
+        });
+        monacoDiffEditor.setModel({
+            original: monaco.editor.createModel(original, "javascript"),
+            modified: monaco.editor.createModel(modified, "javascript")
+        });
+    });
+}
+
+function acceptAllDiff() {
+    const modifiedModel = monacoDiffEditor?.getModel()?.modified;
+    if (modifiedModel) setEditorCode(modifiedModel.getValue());
+    closeDiffModal();
+    showToast("Wijzigingen toegepast.", "success");
+}
+
+function rejectAllDiff() {
+    closeDiffModal();
+    showToast("Wijzigingen afgewezen.", "info");
+}
+
+function closeDiffModal() {
+    const modal = document.getElementById("diff-modal");
+    if (modal) modal.classList.add("hidden");
+    if (monacoDiffEditor) { monacoDiffEditor.dispose(); monacoDiffEditor = null; }
+}
+
+// --- Toast ---
+function showToast(msg, type) {
+    let toast = document.getElementById("ai-fix-toast");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "ai-fix-toast";
+        toast.className = "toast";
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.className = "toast " + (type || "info") + " show";
+    setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
+// --- AI Selector Popup ---
+function openAiSelector() {
+    const modal = document.getElementById("ai-selector-modal");
+    if (!modal) return;
+    const saved = JSON.parse(localStorage.getItem("ai-selection") || "{}");
+    const providerSel = document.getElementById("ai-selector-provider");
+    if (providerSel) providerSel.value = saved.provider || "default";
+    const keyInp = document.getElementById("ai-selector-key");
+    if (keyInp) keyInp.value = saved.apiKey || "";
+    const modelInp = document.getElementById("ai-selector-model");
+    if (modelInp) modelInp.value = saved.model || "";
+    const endpointInp = document.getElementById("ai-selector-endpoint");
+    if (endpointInp) endpointInp.value = saved.endpoint || "";
+    onAiProviderChange();
+    modal.classList.remove("hidden");
+}
+
+function closeAiSelector() {
+    const modal = document.getElementById("ai-selector-modal");
+    if (modal) modal.classList.add("hidden");
+}
+
+function onAiProviderChange() {
+    const provider = document.getElementById("ai-selector-provider").value;
+    const keyGroup = document.getElementById("ai-selector-key-group");
+    const endpointGroup = document.getElementById("ai-selector-endpoint-group");
+    if (keyGroup) keyGroup.classList.toggle("hidden", provider === "default" || provider === "ollama");
+    if (endpointGroup) endpointGroup.classList.toggle("hidden", provider !== "azure" && provider !== "ollama");
+}
+
+function saveAiSelection() {
+    const provider = document.getElementById("ai-selector-provider").value;
+    const apiKey = document.getElementById("ai-selector-key").value.trim();
+    const model = document.getElementById("ai-selector-model").value.trim();
+    const endpoint = document.getElementById("ai-selector-endpoint").value.trim();
+    const selection = { provider, apiKey, model, endpoint };
+    localStorage.setItem("ai-selection", JSON.stringify(selection));
+    updateAiSelectorLabel(selection);
+    closeAiSelector();
+    showToast("AI-selectie opgeslagen.", "success");
+}
+
+function updateAiSelectorLabel(selection) {
+    const label = document.getElementById("ai-selector-label");
+    if (!label) return;
+    const map = { openai: "OpenAI", azure: "Azure", claude: "Claude", grok: "Grok", ollama: "Ollama" };
+    if (selection && selection.provider && selection.provider !== "default") {
+        label.textContent = map[selection.provider] || selection.provider;
+    } else {
+        label.textContent = "AI";
+    }
+}
+
+function getAiSelection() {
+    const saved = JSON.parse(localStorage.getItem("ai-selection") || "{}");
+    if (saved.provider && saved.provider !== "default") return saved;
+    return null;
+}
+
+// --- Bootstrap on DOMContentLoaded ---
+document.addEventListener("DOMContentLoaded", () => {
+    const newTestTab = document.getElementById("create-tab");
+    if (newTestTab) {
+        const ta = document.getElementById("test-code");
+        if (ta) ta.style.display = "none";
+        const runBtn = document.getElementById("run-test-btn");
+        const stopBtn = document.getElementById("stop-test-btn");
+        const fixBtn = document.getElementById("fix-ai-btn");
+        if (runBtn) runBtn.addEventListener("click", runEditorTest);
+        if (stopBtn) stopBtn.addEventListener("click", stopEditorTest);
+        if (fixBtn) fixBtn.addEventListener("click", fixWithAI);
+        updateAiSelectorLabel(getAiSelection());
+    }
+    initCreateChatPanel();
+});
+
+// ============================================
+// CREATE TAB AI CHAT PANEL
+// ============================================
+
+let createChatHistory = [];
+let createChatAgentId = null;
+
+function initCreateChatPanel() {
+    const agentSelect = document.getElementById('create-chat-agent-select');
+    if (!agentSelect) return;
+
+    // Laad site agents in dropdown
+    loadCreateChatAgents();
+
+    // Agent selectie
+    const freeUrlInput = document.getElementById('create-chat-free-url');
+    const previewPanel = document.getElementById('create-browser-preview');
+    agentSelect.addEventListener('change', (e) => {
+        createChatAgentId = e.target.value || null;
+        if (createChatAgentId === '__free__') {
+            if (freeUrlInput) freeUrlInput.style.display = 'inline-block';
+            if (previewPanel) previewPanel.style.display = 'block';
+        } else if (createChatAgentId === '__editor__') {
+            if (freeUrlInput) freeUrlInput.style.display = 'none';
+            if (previewPanel) previewPanel.style.display = 'none';
+        } else {
+            if (freeUrlInput) freeUrlInput.style.display = 'none';
+            if (previewPanel) previewPanel.style.display = 'block';
+        }
+    });
+
+    // Verstuur knop
+    const sendBtn = document.getElementById('create-chat-send-btn');
+    if (sendBtn) sendBtn.addEventListener('click', () => sendCreateChatMessage());
+
+    // Genereer Test knop
+    const genBtn = document.getElementById('create-chat-generate-btn');
+    if (genBtn) genBtn.addEventListener('click', () => {
+        sendCreateChatMessage(null, true);
+    });
+
+    // Clear knop
+    const clearBtn = document.getElementById('create-chat-clear-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            createChatHistory = [];
+            const freeUrlInput = document.getElementById('create-chat-free-url');
+            if (freeUrlInput) freeUrlInput.style.display = 'none';
+            const msgs = document.getElementById('create-chat-messages');
+            if (msgs) {
+                msgs.innerHTML = `
+                    <div class="chat-welcome">
+                        <i class="fa-solid fa-robot"></i>
+                        <p><strong>AI Test Assistant</strong></p>
+                        <p>Kies "📝 Code in Editor" om over je code te praten, of kies een site/browser modus om tests te genereren via MCP.</p>
+                    </div>
+                `;
+            }
+            // Reset preview naar idle state
+            const img = document.getElementById('create-browser-screenshot');
+            const placeholder = document.getElementById('browser-preview-placeholder');
+            const status = document.getElementById('browser-preview-status');
+            if (img) { img.src = ''; img.classList.remove('visible'); }
+            if (placeholder) placeholder.style.display = 'flex';
+            if (status) { status.textContent = 'Idle'; status.className = 'preview-status idle'; }
+        });
+    }
+
+    // Enter to send in create chat input
+    const input = document.getElementById('create-chat-input');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendCreateChatMessage();
+            }
+        });
+    }
+
+    // Socket.IO voor MCP live log
+    socket.on('mcp-tool-call', (data) => {
+        addCreateMcpLogEntry(data.tool, data.args, data.result, data.duration);
+    });
+
+    // LIVE BROWSER PREVIEW: ontvang screenshots van MCP en toon ze
+    socket.on('mcp-screenshot', (data) => {
+        const img = document.getElementById('create-browser-screenshot');
+        const placeholder = document.getElementById('browser-preview-placeholder');
+        const status = document.getElementById('browser-preview-status');
+        if (img && data.image) {
+            img.src = data.image;
+            img.classList.add('visible');
+            if (placeholder) placeholder.style.display = 'none';
+            if (status) {
+                status.textContent = data.auto ? `Actief na ${data.afterTool || 'actie'}` : 'Actief';
+                status.className = 'preview-status active';
+            }
+        }
+    });
+
+    // Socket.IO voor gegenereerde code (auto-insert in Monaco editor)
+    socket.on('mcp-codegen-code', (data) => {
+        if (data.code) {
+            const currentCode = monacoEditor ? monacoEditor.getValue() : '';
+            const newCode = currentCode.includes(data.code) ? currentCode : (currentCode.trim() ? currentCode + '\n  ' + data.code : data.code);
+            if (monacoEditor) monacoEditor.setValue(newCode);
+            addCreateChatMessage('bot', `📝 **Code gegenereerd:** \`\`\`\n${data.code}\n\`\`\``);
+        }
+    });
+}
+
+async function loadCreateChatAgents() {
+    const select = document.getElementById('create-chat-agent-select');
+    if (!select) return;
+    try {
+        const response = await fetch('/api/site-agents');
+        const agents = await response.json();
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">-- Kies modus --</option>' +
+            '<option value="__editor__">📝 Code in Editor (praten over code)</option>' +
+            '<option value="__free__">🌐 Vrije URL (browser)</option>' +
+            agents.map(a => `<option value="${a.id}">${a.name} (browser)</option>`).join('');
+        if (currentVal) select.value = currentVal;
+    } catch (e) {
+        console.error('Fout bij laden agents voor create chat:', e);
+    }
+}
+
+async function sendCreateChatMessage(overrideMessage = null, forceGenerate = false) {
+    const input = document.getElementById('create-chat-input');
+    const message = overrideMessage || input?.value?.trim();
+
+    if (!message) return;
+    if (!createChatAgentId) {
+        addCreateChatMessage('bot', '⚠️ Selecteer eerst een site agent uit de dropdown hierboven!');
+        return;
+    }
+
+    let baseUrl = null;
+    if (createChatAgentId === '__free__') {
+        const freeUrlInput = document.getElementById('create-chat-free-url');
+        baseUrl = freeUrlInput?.value?.trim();
+        if (!baseUrl) {
+            addCreateChatMessage('bot', '⚠️ Vul eerst een URL in het veld hierboven in!');
+            return;
+        }
+    }
+
+    if (!overrideMessage && input) input.value = '';
+    addCreateChatMessage('user', message);
+
+    // Toon loading
+    const msgsDiv = document.getElementById('create-chat-messages');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'chat-message bot';
+    loadingDiv.id = 'create-chat-loading';
+    loadingDiv.innerHTML = `<div class="avatar"><i class="fa-solid fa-robot"></i></div><div class="bubble"><i class="fa-solid fa-spinner fa-spin"></i> MCP Agent denkt na...</div>`;
+    msgsDiv.appendChild(loadingDiv);
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+
+    // Haal huidige editor-code op
+    const editorContent = monacoEditor ? monacoEditor.getValue() : '';
+
+    try {
+        const response = await fetch('/api/mcp-chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                siteAgentId: createChatAgentId,
+                message: forceGenerate ? `Genereer een test: ${message}` : message,
+                history: createChatHistory.slice(-10),
+                socketId: socket.id,
+                baseUrl: baseUrl,
+                editorContent: editorContent
+            })
+        });
+
+        const result = await response.json();
+
+        const loading = document.getElementById('create-chat-loading');
+        if (loading) loading.remove();
+
+        if (result.success) {
+            addCreateChatMessage('bot', result.response);
+            if (result.newCode) {
+                if (monacoEditor) {
+                    monacoEditor.setValue(result.newCode);
+                    addCreateChatMessage('bot', '✏️ **Code aangepast!** De editor is bijgewerkt met de nieuwe code.');
+                }
+            }
+            if (result.runTest) {
+                addCreateChatMessage('bot', '▶️ **Test wordt uitgevoerd...**');
+                setTimeout(() => runTestFromEditor(), 500);
+            }
+            if (result.generatedCode) {
+                const currentCode = monacoEditor ? monacoEditor.getValue() : '';
+                const newCode = currentCode.trim() ? currentCode + '\n\n' + result.generatedCode : result.generatedCode;
+                if (monacoEditor) monacoEditor.setValue(newCode);
+                addCreateChatMessage('bot', '📋 **Test gegenereerd!** De code staat nu in de editor hierboven. Je kunt hem bewerken, opslaan of direct uitvoeren.');
+            }
+        } else {
+            addCreateChatMessage('bot', `❌ Fout: ${result.error}`);
+        }
+    } catch (error) {
+        const loading = document.getElementById('create-chat-loading');
+        if (loading) loading.remove();
+        addCreateChatMessage('bot', `❌ Fout: ${error.message}`);
+    }
+}
+
+function addCreateChatMessage(role, content, cssClass = '') {
+    const msgsDiv = document.getElementById('create-chat-messages');
+    if (!msgsDiv) return;
+    // Verwijder welcome message als er een echte chat start
+    const welcome = msgsDiv.querySelector('.chat-welcome');
+    if (welcome) welcome.remove();
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${role}`;
+    const avatar = role === 'user'
+        ? '<div class="avatar"><i class="fa-solid fa-user"></i></div>'
+        : '<div class="avatar"><i class="fa-solid fa-robot"></i></div>';
+
+    // Zorg dat content altijd een string is
+    const text = typeof content === 'string' ? content : JSON.stringify(content);
+
+    let formatted = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/\n/g, '<br>');
+
+    const bubbleClass = cssClass ? `bubble ${cssClass}` : 'bubble';
+    msgDiv.innerHTML = `${avatar}<div class="${bubbleClass}">${formatted}</div>`;
+    msgsDiv.appendChild(msgDiv);
+    msgsDiv.scrollTop = msgsDiv.scrollHeight;
+}
+
+function addCreateMcpLogEntry(tool, args, result, duration) {
+    const logContent = document.getElementById('create-mcp-log-content');
+    if (!logContent) return;
+
+    // Verwijder empty state
+    const empty = logContent.querySelector('.mcp-empty-state');
+    if (empty) empty.remove();
+
+    const entry = document.createElement('div');
+    entry.className = 'create-mcp-log-entry success';
+    const argsStr = JSON.stringify(args || {}).substring(0, 200);
+    entry.innerHTML = `
+        <div class="mcp-log-tool">${tool} <span style="color:var(--text-muted);font-weight:normal;">(${duration}ms)</span></div>
+        <div class="mcp-log-args">${argsStr}</div>
+    `;
+    logContent.appendChild(entry);
+    logContent.scrollTop = logContent.scrollHeight;
+
+    // Update counter
+    const countEl = document.getElementById('create-mcp-log-count');
+    if (countEl) {
+        const current = parseInt(countEl.textContent) || 0;
+        countEl.textContent = `${current + 1} calls`;
+    }
+}
+
+function clearCreateMcpLog() {
+    const logContent = document.getElementById('create-mcp-log-content');
+    if (logContent) {
+        logContent.innerHTML = `
+            <div class="mcp-empty-state">
+                <span><i class="fa-solid fa-robot"></i> Start een chat om Playwright in de browser te zien werken</span>
+            </div>
+        `;
+    }
+    const countEl = document.getElementById('create-mcp-log-count');
+    if (countEl) countEl.textContent = '0 calls';
+}
+
+function toggleCreateMcpConsole() {
+    const body = document.getElementById('create-mcp-body');
+    const icon = document.getElementById('create-mcp-toggle-icon');
+    if (!body) return;
+    body.classList.toggle('collapsed');
+    if (icon) icon.className = body.classList.contains('collapsed') ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+}
+
+function toggleCreateChatPanel() {
+    const body = document.getElementById('create-chat-body');
+    const icon = document.getElementById('create-chat-toggle-icon');
+    if (!body) return;
+    body.classList.toggle('collapsed');
+    if (icon) icon.className = body.classList.contains('collapsed') ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
 }

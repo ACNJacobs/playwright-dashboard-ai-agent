@@ -1,182 +1,131 @@
 {
   "apps": [
     {
-      "id": "1782817773710",
-      "name": "Notepad",
-      "target": "C:\\Windows\\System32\\notepad.exe",
-      "windowTitle": "Untitled - Notepad",
-      "description": "Windows Notepad voor demo",
-      "createdAt": "2026-06-30T11:09:33.710Z"
+      "id": "1782992462027",
+      "name": "Kladblok",
+      "target": "notepad.exe",
+      "windowTitle": "",
+      "description": "Ingebouwde teksteditor",
+      "createdAt": "2026-07-02T11:41:02.027Z"
+    },
+    {
+      "id": "1782992984044",
+      "name": "Rekenmachine",
+      "target": "calc.exe",
+      "windowTitle": "Rekenmachine",
+      "description": "Windows Calculator",
+      "createdAt": "2026-07-02T11:49:44.044Z"
     }
   ],
   "scenarios": [
     {
-      "id": "1782895718978",
-      "name": "Test Scenario",
-      "appId": "1782817773710",
-      "steps": [
-        {
-          "action": "start",
-          "by": "name",
-          "duration": 1000,
-          "key": "Enter",
-          "match": "equals",
-          "property": "IsEnabled",
-          "critical": true
-        }
-      ],
-      "createdAt": "2026-07-01T08:48:38.978Z"
-    },
-    {
-      "id": "1782981855139",
-      "name": "Test Notepad",
-      "appId": "1782817773710",
+      "id": "1782992519974",
+      "name": "AI: start notepad, type 'hello AI world' en sluit note...",
+      "appId": "1782992462027",
       "steps": [
         {
           "action": "start",
           "target": "notepad.exe",
-          "description": "Start Notepad"
-        },
-        {
-          "action": "type",
-          "target": "Edit",
-          "by": "class name",
-          "value": "wij doen het",
-          "description": "Type tekst"
-        },
-        {
-          "action": "key",
-          "value": "Ctrl+s",
-          "description": "Opslaan"
-        },
-        {
-          "action": "type",
-          "target": "Bestandsnaam:",
-          "by": "name",
-          "value": "wijdoenhet",
-          "description": "Bestandsnaam"
-        },
-        {
-          "action": "click",
-          "target": "Opslaan",
-          "by": "name",
-          "description": "Klik Opslaan"
-        },
-        {
-          "action": "close",
-          "description": "Sluit Notepad"
-        }
-      ],
-      "createdAt": "2026-07-02T08:44:15.139Z"
-    },
-    {
-      "id": "1782981864770",
-      "name": "AI: start notepad schrijf \"wij doen het\" s...",
-      "appId": "1782817773710",
-      "steps": [
-        {
-          "action": "start",
-          "description": "Start Notepad",
-          "target": "notepad.exe",
-          "value": ""
-        },
-        {
-          "action": "type",
-          "description": "Type tekst",
-          "target": "Edit",
-          "by": "class name",
-          "value": "wij doen het"
-        },
-        {
-          "action": "key",
-          "description": "Opslaan",
-          "value": "Ctrl+s"
-        },
-        {
-          "action": "type",
-          "description": "Bestandsnaam",
-          "target": "Bestandsnaam:",
-          "by": "name",
-          "value": "wijdoenhet"
-        },
-        {
-          "action": "click",
-          "description": "Klik Opslaan",
-          "target": "Opslaan",
-          "by": "name"
-        },
-        {
-          "action": "close",
-          "description": "Sluit Notepad"
-        }
-      ],
-      "createdAt": "2026-07-02T08:44:24.770Z"
-    },
-    {
-      "id": "1782982500503",
-      "name": "AI: start notepad schrijf \"wij doen het\" sla op onder ...",
-      "appId": "1782817773710",
-      "steps": [
-        {
-          "action": "start",
-          "path": "C:\\Windows\\System32\\notepad.exe",
-          "description": "Start Notepad applicatie"
-        },
-        {
-          "action": "waitForElement",
-          "target": "Untitled - Notepad",
-          "by": "name",
-          "description": "Wacht tot Notepad venster verschijnt"
-        },
-        {
-          "action": "type",
-          "text": "wij doen het",
-          "description": "Type de tekst in het document"
-        },
-        {
-          "action": "key",
-          "key": "Ctrl+s",
-          "description": "Open het Opslaan Als dialoog venster"
-        },
-        {
-          "action": "waitForElement",
-          "target": "Save As",
-          "by": "name",
-          "description": "Wacht tot Opslaan Als venster geopend is"
-        },
-        {
-          "action": "click",
-          "target": "File name:",
-          "by": "name",
-          "description": "Klik op het bestandsnaam invoerveld"
-        },
-        {
-          "action": "key",
-          "key": "Ctrl+a",
-          "description": "Selecteer alle tekst in het veld"
-        },
-        {
-          "action": "type",
-          "text": "wijdoenhet",
-          "description": "Voer de bestandsnaam in"
-        },
-        {
-          "action": "click",
-          "target": "Save",
-          "by": "name",
-          "description": "Klik op de Opslaan knop"
+          "description": "Start Kladblok applicatie"
         },
         {
           "action": "wait",
           "duration": 1000,
-          "description": "Wacht tot het bestand opgeslagen is"
+          "description": "Wacht tot applicatie geladen is"
+        },
+        {
+          "action": "type",
+          "target": "Edit",
+          "by": "class name",
+          "value": "hello AI world",
+          "description": "Type 'hello AI world' in het tekstveld"
         },
         {
           "action": "close",
-          "description": "Sluit Notepad applicatie"
+          "description": "Sluit Kladblok applicatie"
         }
       ],
-      "createdAt": "2026-07-02T08:55:00.503Z"
+      "createdAt": "2026-07-02T11:41:59.974Z"
+    },
+    {
+      "id": "1782992863408",
+      "name": "AI: start notepad, wacht, type 'Test geslaagd door AI ...",
+      "appId": "1782992462027",
+      "steps": [
+        {
+          "action": "start",
+          "target": "notepad.exe",
+          "description": "Start Kladblok applicatie"
+        },
+        {
+          "action": "wait",
+          "duration": 2000,
+          "description": "Wacht tot applicatie volledig geladen is"
+        },
+        {
+          "action": "type",
+          "target": "Edit",
+          "by": "class name",
+          "text": "Test geslaagd door AI backend!",
+          "description": "Type de test tekst in het document"
+        },
+        {
+          "action": "close",
+          "description": "Sluit de applicatie"
+        }
+      ],
+      "createdAt": "2026-07-02T11:47:43.408Z"
+    },
+    {
+      "id": "1782992985054",
+      "name": "Test Rekenmachine: 5 + 5",
+      "appId": "1782992984044",
+      "steps": [
+        {
+          "action": "start",
+          "target": "calc.exe",
+          "description": "Start Rekenmachine"
+        },
+        {
+          "action": "wait",
+          "duration": 2000,
+          "description": "Wacht even tot laadt"
+        },
+        {
+          "action": "click",
+          "target": "Vijf",
+          "by": "name",
+          "description": "Klik op 5"
+        },
+        {
+          "action": "click",
+          "target": "Plus",
+          "by": "name",
+          "description": "Klik op +"
+        },
+        {
+          "action": "click",
+          "target": "Vijf",
+          "by": "name",
+          "description": "Klik op 5"
+        },
+        {
+          "action": "click",
+          "target": "Is gelijk aan",
+          "by": "name",
+          "description": "Klik op ="
+        },
+        {
+          "action": "wait",
+          "duration": 1000,
+          "description": "Wacht op berekening"
+        },
+        {
+          "action": "close",
+          "description": "Sluit Rekenmachine"
+        }
+      ],
+      "createdAt": "2026-07-02T11:49:45.054Z"
     }
   ]
 }

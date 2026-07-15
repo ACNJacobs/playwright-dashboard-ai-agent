@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="style-new.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 </head>
 <body>
     <header>
@@ -31,6 +32,9 @@
                 </button>
                 <span id="auto-refresh-status" class="auto-refresh-status">
                     <i class="fa-solid fa-circle-xmark" style="color: var(--danger);"></i> Auto-refresh inactief
+                </span>
+                <span id="global-wad-status" class="status-badge status-info" title="WinAppDriver status" style="margin-right: 0.5rem; cursor: default;">
+                    <i class="fa-solid fa-spinner fa-spin"></i> WAD...
                 </span>
                 <span class="version">v1.0.0 — Ton Jacobs</span>
             </div>
@@ -120,39 +124,182 @@
                 </div>
                 <div class="form-group">
                     <label for="test-code">Test Code:</label>
-                    <div class="snippet-toolbar">
-                        <span class="toolbar-label"><i class="fa-solid fa-screwdriver-wrench"></i> Snippets:</span>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('template')" title="Basis test template"><i class="fa-solid fa-file-lines"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('goto')" title="Ga naar URL"><i class="fa-solid fa-link"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('click')" title="Klik op element"><i class="fa-solid fa-arrow-pointer"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('fill')" title="Vul tekst in"><i class="fa-solid fa-keyboard"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectText')" title="Controleer tekst"><i class="fa-solid fa-check"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectVisible')" title="Controleer zichtbaar"><i class="fa-solid fa-eye"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('expectPrice')" title="Controleer prijs/bedrag"><i class="fa-solid fa-money-bill"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('screenshot')" title="Maak screenshot"><i class="fa-solid fa-camera"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('wait')" title="Wacht even"><i class="fa-solid fa-hourglass-half"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="insertSnippet('video')" title="Start video opname"><i class="fa-solid fa-video"></i></button>
-                    </div>
-                    <!-- Code Zoekbalk -->
+                    <!-- Actiebalk boven editor -->
                     <div class="code-search-bar">
-                        <input type="text" id="code-search-input" placeholder="Zoek in code..." oninput="searchInCode()">
-                        <div class="code-search-nav">
-                            <span id="code-search-count">0/0</span>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="findPrevMatch()" title="Vorige"><i class="fa-solid fa-chevron-up"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="findNextMatch()" title="Volgende"><i class="fa-solid fa-chevron-down"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="clearCodeSearch()" title="Wissen"><i class="fa-solid fa-xmark"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="openMonacoFind()" title="Zoeken in code (Ctrl+F)"><i class="fa-solid fa-magnifying-glass"></i> Zoeken</button>
+                        <span class="toolbar-hint">Tip: gebruik Ctrl+F in de editor voor snel zoeken</span>
+                    </div>
+                    <!-- Actiebalk boven editor -->
+                    <div class="editor-actionbar">
+                        <div class="editor-actionbar-left">
+                            <button id="run-test-btn" class="btn btn-success btn-sm" title="Test uitvoeren" onclick="runEditorTest()"><i class="fa-solid fa-play"></i> Run</button>
+                            <button id="stop-test-btn" class="btn btn-danger btn-sm hidden" title="Test stoppen" onclick="stopEditorTest()"><i class="fa-solid fa-stop"></i> Stop</button>
+                            <button id="fix-ai-btn" class="btn btn-warning btn-sm" title="Draai eerst de test — de AI heeft de foutmelding nodig" disabled onclick="fixWithAI()"><i class="fa-solid fa-wrench"></i> Fix met AI</button>
+                            <button id="ai-selector-btn" class="btn btn-secondary btn-sm" title="Kies AI-provider" onclick="openAiSelector()"><i class="fa-solid fa-robot"></i> <span id="ai-selector-label">AI</span></button>
                         </div>
                     </div>
-                    <textarea id="test-code" rows="15" placeholder="const { test, expect } = require('@playwright/test');
+                    <!-- Monaco Editor container -->
+                    <div id="monaco-editor-container" style="height: 380px; border: 1px solid var(--border); border-radius: var(--radius);"></div>
+                    <!-- Fallback/legacy textarea (hidden, for migration) -->
+                    <textarea id="test-code" rows="15" class="hidden" placeholder="const { test, expect } = require('@playwright/test');
 
 test('mijn test', async ({ page }) => {
   await page.goto('https://example.com');
   await expect(page).toHaveTitle('Example');
 });"></textarea>
+                    <!-- Resultaatpaneel -->
+                    <div id="run-result-panel" class="run-result-panel hidden">
+                        <div class="run-result-header">
+                            <span class="run-result-title"><i class="fa-solid fa-list-check"></i> Resultaat</span>
+                            <span id="run-result-meta" class="run-result-meta"></span>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="toggleResultPanel()" title="In-/uitklappen"><i class="fa-solid fa-chevron-down" id="run-result-toggle-icon"></i></button>
+                        </div>
+                        <div id="run-result-body" class="run-result-body">
+                            <div id="run-result-steps" class="run-result-steps"></div>
+                            <div id="run-result-error" class="run-result-error hidden"></div>
+                            <div class="run-result-actions">
+                                <button id="view-trace-btn" class="btn btn-secondary btn-sm hidden" onclick="viewTrace()"><i class="fa-solid fa-file-lines"></i> Trace bekijken</button>
+                                <button id="result-fix-ai-btn" class="btn btn-warning btn-sm hidden" onclick="fixWithAI()"><i class="fa-solid fa-wrench"></i> Fix met AI</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <button id="create-test-btn" class="btn btn-primary" title="Test Opslaan"><i class="fa-solid fa-floppy-disk"></i></button>
+                <button id="create-test-btn" class="btn btn-primary" title="Test Opslaan" onclick="createTest()"><i class="fa-solid fa-floppy-disk"></i></button>
+
+                <!-- AI Chat Panel voor Nieuwe Test Maken -->
+                <div id="create-chat-panel" class="create-chat-panel">
+                    <div class="create-chat-header">
+                        <div class="create-chat-header-left">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>AI Test Assistant</span>
+                        </div>
+                        <div class="create-chat-header-right">
+                            <select id="create-chat-agent-select" class="agent-select">
+                                <option value="">-- Kies een site agent --</option>
+                            </select>
+                            <input type="url" id="create-chat-free-url" class="agent-url-input" placeholder="https://voorbeeld.com" style="display:none;" />
+                            <button id="create-chat-toggle-btn" class="btn btn-sm btn-outline" title="Chat in-/uitklappen" onclick="toggleCreateChatPanel()"><i class="fa-solid fa-chevron-up" id="create-chat-toggle-icon"></i></button>
+                        </div>
+                    </div>
+                    <div id="create-chat-body" class="create-chat-body">
+                        <!-- Live Browser Preview -->
+                        <div id="create-browser-preview" class="create-browser-preview">
+                            <div class="browser-preview-header">
+                                <span><i class="fa-solid fa-desktop"></i> Live Browser Preview</span>
+                                <span id="browser-preview-status" class="preview-status idle">Idle</span>
+                            </div>
+                            <div class="browser-preview-frame">
+                                <img id="create-browser-screenshot" src="" alt="Browser screenshot verschijnt hier wanneer de AI actief is..." />
+                                <div id="browser-preview-placeholder" class="browser-preview-placeholder">
+                                    <i class="fa-solid fa-image"></i>
+                                    <p>Start een chat — screenshots verschijnen hier live</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MCP Live Console -->
+                        <div id="create-mcp-console" class="create-mcp-console">
+                            <div class="create-mcp-header" onclick="toggleCreateMcpConsole()">
+                                <span class="mcp-title"><i class="fa-solid fa-eye"></i> MCP Browser Activiteit <span id="create-mcp-log-count">0 calls</span></span>
+                                <button class="btn btn-xs btn-outline" onclick="event.stopPropagation(); clearCreateMcpLog()" title="Wis log"><i class="fa-solid fa-trash"></i></button>
+                                <button class="btn btn-xs btn-outline" onclick="event.stopPropagation(); toggleCreateMcpConsole()" title="In-/uitklappen"><i class="fa-solid fa-chevron-down" id="create-mcp-toggle-icon"></i></button>
+                            </div>
+                            <div id="create-mcp-body" class="create-mcp-body">
+                                <div id="create-mcp-log-content" class="create-mcp-log-content">
+                                    <div class="mcp-empty-state">
+                                        <span><i class="fa-solid fa-robot"></i> Start een chat om Playwright in de browser te zien werken</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat berichten -->
+                        <div id="create-chat-messages" class="create-chat-messages">
+                            <div class="chat-welcome">
+                                <i class="fa-solid fa-robot"></i>
+                                <p><strong>AI Test Assistant</strong></p>
+                                <p>Kies een site agent hierboven en beschrijf wat je wilt testen. De AI opent een echte browser zodat je meekijkt!</p>
+                            </div>
+                        </div>
+
+                        <!-- Chat input -->
+                        <div class="create-chat-input-area">
+                            <div class="create-chat-input-row">
+                                <textarea id="create-chat-input" rows="2" placeholder="Beschrijf wat je wilt testen... Bijv: 'Ga naar de login pagina, vul credentials in, en controleer of het dashboard laadt'"></textarea>
+                            </div>
+                            <div class="create-chat-actions-row">
+                                <button id="create-chat-send-btn" class="btn btn-primary btn-sm" title="Verstuur"><i class="fa-solid fa-paper-plane"></i> Verstuur</button>
+                                <button id="create-chat-generate-btn" class="btn btn-success btn-sm" title="Genereer Test"><i class="fa-solid fa-file-pen"></i> Genereer Test</button>
+                                <button id="create-chat-clear-btn" class="btn btn-secondary btn-sm" title="Wis Chat"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
+
+        <!-- AI Fix Diff Modal -->
+        <div id="diff-modal" class="modal hidden">
+            <div class="modal-overlay" onclick="closeDiffModal()"></div>
+            <div class="modal-content modal-lg">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Fix Voorstel</h3>
+                    <button class="btn btn-sm btn-outline" onclick="closeDiffModal()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div id="diff-explanation" class="diff-explanation"></div>
+                    <div id="diff-editor-container" style="height: 400px; border: 1px solid var(--border); border-radius: var(--radius);"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="acceptAllDiff()"><i class="fa-solid fa-check"></i> Alles accepteren</button>
+                    <button class="btn btn-danger" onclick="rejectAllDiff()"><i class="fa-solid fa-xmark"></i> Alles afwijzen</button>
+                    <button class="btn btn-secondary" onclick="closeDiffModal()">Sluiten</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Selector Popup -->
+        <div id="ai-selector-modal" class="modal hidden">
+            <div class="modal-overlay" onclick="closeAiSelector()"></div>
+            <div class="modal-content modal-sm">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-robot"></i> Kies AI voor Fix</h3>
+                    <button class="btn btn-sm btn-outline" onclick="closeAiSelector()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="ai-selector-provider">Provider:</label>
+                        <select id="ai-selector-provider" onchange="onAiProviderChange()">
+                            <option value="default">Dashboard default</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="azure">Azure OpenAI</option>
+                            <option value="claude">Claude (Anthropic)</option>
+                            <option value="grok">Grok (xAI)</option>
+                            <option value="ollama">Ollama (Lokaal)</option>
+                        </select>
+                    </div>
+                    <div id="ai-selector-key-group" class="form-group hidden">
+                        <label for="ai-selector-key">API Key:</label>
+                        <input type="password" id="ai-selector-key" placeholder="(optioneel — gebruikt dashboard key)">
+                    </div>
+                    <div class="form-group">
+                        <label for="ai-selector-model">Model:</label>
+                        <input type="text" id="ai-selector-model" placeholder="bijv. gpt-4o, claude-3-opus...">
+                    </div>
+                    <div id="ai-selector-endpoint-group" class="form-group hidden">
+                        <label for="ai-selector-endpoint">Endpoint / Base URL:</label>
+                        <input type="text" id="ai-selector-endpoint" placeholder="bijv. http://localhost:11434">
+                    </div>
+                    <div class="ai-selector-hint">
+                        <i class="fa-solid fa-circle-info"></i> Laat API Key leeg om de dashboard-instelling te gebruiken.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="saveAiSelection()"><i class="fa-solid fa-check"></i> Toepassen</button>
+                    <button class="btn btn-secondary" onclick="closeAiSelector()">Annuleren</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Codegen Tab -->
         <section id="codegen-tab" class="tab-content">
@@ -175,17 +322,29 @@ test('mijn test', async ({ page }) => {
                 <p>Plan tests om automatisch op vaste tijden te draaien.</p>
                 
                 <div class="form-group">
-                    <label for="scheduled-test-select">Test:</label>
-                    <select id="scheduled-test-select">
-                        <option value="">-- Kies een test --</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="schedule-type">Scheduling Type:</label>
-                    <select id="schedule-type">
-                        <option value="interval">Interval (minuten)</option>
-                        <option value="hourly">Elk uur</option>
+                      <label for="test-type-select">Test Type:</label>
+                      <select id="test-type-select">
+                          <option value="web">Web Test (Playwright)</option>
+                          <option value="app-scenario">Applicatie Scenario (WinAppDriver)</option>
+                      </select>
+                  </div>
+                  
+                  <div id="web-tests-block">
+                      <div class="form-group">
+                          <label for="scheduled-test-select">Web Test:</label>
+                          <select id="scheduled-test-select">
+                              <option value="">-- Kies een test --</option>
+                          </select>
+                      </div>
+                  </div>
+                  
+                  <div id="scenarios-block" style="display: none;">
+                      <div class="form-group">
+                          <label for="scheduled-scenario-select">Applicatie Scenario:</label>
+                          <select id="scheduled-scenario-select">
+                              <option value="">-- Kies een Navision / App scenario --</option>
+                          </select>
+                      </div>
                         <option value="daily">Dagelijks</option>
                         <option value="weekly">Wekelijks</option>
                         <option value="monthly">Maandelijks</option>
@@ -745,7 +904,7 @@ test('mijn test', async ({ page }) => {
                 
                 <!-- Midden paneel: Chat -->
                 <div class="ai-chat-pane" id="ai-chat-pane">
-                    <div id="ai-chat-container" class="ai-chat-container hidden">
+                    <div id="ai-chat-container" class="ai-chat-container">
                         <div class="ai-chat-header">
                             <span id="ai-chat-site-name">Site Agent</span>
                             <div class="ai-chat-actions">
@@ -759,11 +918,6 @@ test('mijn test', async ({ page }) => {
                             <div class="ai-chat-input-row">
                                 <textarea id="ai-chat-input" rows="2" placeholder="Beschrijf wat je wilt testen... Bijv: 'Bezoek de site, log in, en controleer of het dashboard laadt'"></textarea>
                             </div>
-                            <!-- Handmatige actie input -->
-                            <div class="manual-action-row">
-                                <input type="text" id="manual-action-input" placeholder="Typ een handmatige actie: 'klik op Inloggen', 'vul Username in met testuser'..." />
-                                <button id="manual-action-btn" class="btn btn-primary btn-sm" title="Uitvoeren"><i class="fa-solid fa-play"></i></button>
-                            </div>
                             <div class="ai-chat-actions-row">
                                 <button id="ai-chat-send-btn" class="btn btn-primary" title="Verstuur"><i class="fa-solid fa-paper-plane"></i></button>
                                 <button id="ai-new-test-btn" class="btn btn-success" title="Nieuwe Test"><i class="fa-solid fa-plus"></i></button>
@@ -774,8 +928,40 @@ test('mijn test', async ({ page }) => {
                     </div>
                 </div>
 
-                <!-- Rechter paneel: Test Editor (altijd zichtbaar in AI Agent tab) -->
+                <!-- Rechter paneel: Test Editor + MCP Console -->
                 <div class="ai-editor-pane" id="ai-editor-pane">
+                    <!-- MCP Console: altijd zichtbaar zodat je ALTIJD ziet wat de AI doet -->
+                    <div id="mcp-console-panel" class="mcp-console-panel">
+                        <div class="mcp-console-header" onclick="toggleMcpConsole()">
+                            <span class="mcp-title"><i class="fa-solid fa-eye"></i> MCP Activiteit <span id="mcp-log-count">0 calls</span></span>
+                            <div class="mcp-console-actions">
+                                <button class="btn btn-xs btn-outline" onclick="event.stopPropagation(); clearMcpLog()" title="Wis log"><i class="fa-solid fa-trash"></i></button>
+                                <button class="btn btn-xs btn-outline" onclick="event.stopPropagation(); toggleMcpConsole()" title="In-/uitklappen"><i class="fa-solid fa-chevron-down" id="mcp-toggle-icon"></i></button>
+                            </div>
+                        </div>
+                        <div class="mcp-console-body" id="mcp-console-body">
+                            <div class="mcp-tools-bar">
+                                <span class="mcp-label">Tools:</span>
+                                <div id="mcp-tools-list" class="mcp-tools-list">
+                                    <span class="mcp-loading">Laden...</span>
+                                </div>
+                            </div>
+                            <div class="mcp-log-container">
+                                <div class="mcp-log-header">
+                                    <span><i class="fa-solid fa-terminal"></i> Live Log</span>
+                                    <span class="mcp-badge" id="mcp-status-badge">Inactief</span>
+                                </div>
+                                <div id="mcp-log-content" class="mcp-log-content">
+                                    <div class="mcp-empty-state">
+                                        <span><i class="fa-solid fa-robot"></i> MCP tools verschijnen hier wanneer de AI agent ze gebruikt</span>
+                                        <br><small>Start een chat om te zien hoe Playwright wordt bestuurd</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Test Editor -->
                     <div id="test-editor-panel" class="test-editor-panel">
                         <div class="test-editor-header">
                             <span class="test-editor-title"><i class="fa-solid fa-file-pen"></i> Test Editor</span>
@@ -790,7 +976,8 @@ test('mijn test', async ({ page }) => {
                             <div class="test-editor-status" id="test-editor-status">
                                 <span class="status-badge status-info" id="codegen-status-badge"><i class="fa-solid fa-file-pen"></i> Klaar voor code generatie</span>
                             </div>
-                            <textarea id="test-editor-code" class="test-editor-code" placeholder="// Start een conversatie om Playwright code te genereren
+                            <div id="ai-agent-monaco-container" style="height: 280px; border: 1px solid var(--border); border-radius: var(--radius);"></div>
+                            <textarea id="test-editor-code" class="test-editor-code hidden" placeholder="// Start een conversatie om Playwright code te genereren
 // De agent zal hier live code verschijnen terwijl hij de site doorloopt
 // Of typ een handmatige actie om zelf code te genereren
 
@@ -950,6 +1137,6 @@ test('voorbeeld', async ({ page }) => {
     </main>
 
     <script src="/socket.io/socket.io.js?v=2"></script>
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=11"></script>
 </body>
 </html>

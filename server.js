@@ -1633,19 +1633,25 @@ let mcpClient = null;
 async function startMcpServer() {
   if (mcpServerProcess) return;
 
-  // Altijd in HEADED mode (gebruiker moet mee kunnen kijken)
-  mcpServerProcess = spawn('npx', ['@playwright/mcp', '--port', String(MCP_PORT), '--codegen=typescript', '--timeout-navigation', '30000'], {
+  // Gebruik direct pad naar MCP CLI i.p.v. npx — werkt betrouwbaarder op Windows
+  const mcpCliPath = path.join(__dirname, 'node_modules', '@playwright', 'mcp', 'cli.js');
+  mcpServerProcess = spawn(process.execPath, [
+    mcpCliPath,
+    '--port', String(MCP_PORT),
+    '--timeout-navigation', '30000'
+  ], {
     cwd: __dirname,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    shell: true
+    stdio: ['ignore', 'pipe', 'pipe']
   });
 
   mcpServerProcess.stdout.on('data', (data) => {
     console.log('[MCP]', data.toString().trim());
   });
 
+  // BELANGRIJK: MCP output gaat naar stderr op Windows
   mcpServerProcess.stderr.on('data', (data) => {
-    console.error('[MCP stderr]', data.toString().trim());
+    const msg = data.toString().trim();
+    console.log('[MCP]', msg);  // Log als info, niet error
   });
 
   mcpServerProcess.on('close', (code) => {
@@ -1654,8 +1660,31 @@ async function startMcpServer() {
     mcpClient = null;
   });
 
-  // Wacht tot de server draait
-  await new Promise(r => setTimeout(r, 3000));
+  // Wacht tot de server draait — poll poort elke 500ms, max 15 sec
+  const net = require('net');
+  let portOpen = false;
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      await new Promise((resolve, reject) => {
+        const conn = net.createConnection(MCP_PORT, 'localhost');
+        conn.on('connect', () => { conn.destroy(); resolve(); });
+        conn.on('error', (err) => reject(err));
+      });
+      console.log(`[MCP] Server luistert op poort ${MCP_PORT}`);
+      portOpen = true;
+      break;
+    } catch {
+      // nog niet klaar
+    }
+  }
+  
+  if (!portOpen) {
+    console.error(`[MCP] Server startte niet binnen 15s op poort ${MCP_PORT}`);
+    mcpServerProcess.kill();
+    mcpServerProcess = null;
+    return;
+  }
   
   // Initialiseer MCP client met SDK
   await initMcpClient();

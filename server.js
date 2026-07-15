@@ -2226,16 +2226,29 @@ Geef ALLEEN de code terug, geen markdown formatting, geen uitleg.`;
     } else {
       // MODE: Normale MCP interactie (navigeren, klikken, screenshots)
       
+      // Voor __free__ en site agents: navigeer EERST naar de site zodat de AI context heeft
+      let pageContext = '';
+      try {
+        await callMcpTool('browser_navigate', { url: agent.baseUrl }, socketId);
+        const snapshotResult = await callMcpTool('browser_snapshot', {}, socketId);
+        pageContext = snapshotResult?.content?.[0]?.text?.substring(0, 2000) || '';
+      } catch (ctxErr) {
+        console.log('Context ophalen info:', ctxErr.message);
+      }
+      
       // Haal huidige buffer op voor context
       const buffer = socketId ? getSessionBuffer(socketId) : { snippets: [] };
       const bufferContext = buffer.snippets.length > 0 
         ? `\n\nHuidige gegenereerde code:\n${buffer.snippets.map(s => `// [${s.source}] ${s.tool}\n${s.code}`).join('\n')}`
         : '';
       
-      // STAP 1: Vraag het model om een plan te maken
+      // STAP 1: Vraag het model om een plan te maken (met pagina context)
       const planPrompt = `Je bent een Playwright test automation planner.
 
 Gebruiker vraagt: "${message}"
+
+Huidige pagina URL: ${agent.baseUrl}
+Pagina structuur (accessibility tree): ${pageContext}
 
 Beschikbare tools:
 ${toolsList}${bufferContext}
@@ -2244,6 +2257,7 @@ Maak een JSON plan met stappen. Elke stap heeft een "tool" en "args".
 Voorbeeld:
 [
   {"tool": "browser_navigate", "args": {"url": "https://example.com"}},
+  {"tool": "browser_click", "args": {"element": "text=Accepteren"}},
   {"tool": "browser_take_screenshot", "args": {}}
 ]
 

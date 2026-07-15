@@ -5631,7 +5631,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ============================================
 
 let createChatHistory = [];
-let createChatAgentId = null;
+let createChatAgentId = '__editor__';
 
 function initCreateChatPanel() {
     const agentSelect = document.getElementById('create-chat-agent-select');
@@ -5640,11 +5640,15 @@ function initCreateChatPanel() {
     // Laad site agents in dropdown
     loadCreateChatAgents();
 
+    // Standaard: Code in Editor mode
+    agentSelect.value = '__editor__';
+    createChatAgentId = '__editor__';
+
     // Agent selectie
     const freeUrlInput = document.getElementById('create-chat-free-url');
     const previewPanel = document.getElementById('create-browser-preview');
     agentSelect.addEventListener('change', (e) => {
-        createChatAgentId = e.target.value || null;
+        createChatAgentId = e.target.value || '__editor__';
         if (createChatAgentId === '__free__') {
             if (freeUrlInput) freeUrlInput.style.display = 'inline-block';
             if (previewPanel) previewPanel.style.display = 'block';
@@ -5759,10 +5763,7 @@ async function sendCreateChatMessage(overrideMessage = null, forceGenerate = fal
     const message = overrideMessage || input?.value?.trim();
 
     if (!message) return;
-    if (!createChatAgentId) {
-        addCreateChatMessage('bot', '⚠️ Selecteer eerst een site agent uit de dropdown hierboven!');
-        return;
-    }
+    createChatAgentId = createChatAgentId || '__editor__';
 
     let baseUrl = null;
     if (createChatAgentId === '__free__') {
